@@ -1,99 +1,184 @@
-import {App, Editor, MarkdownView, Modal, Notice, Plugin} from 'obsidian';
-import {DEFAULT_SETTINGS, MyPluginSettings, SampleSettingTab} from "./settings";
+import {App, Editor, MarkdownView, Modal, Notice, Plugin, normalizePath, TFile, TFolder} from 'obsidian';
+import {DEFAULT_SETTINGS, ToolsFor5eSettings, ToolsFor5eSettingsTab} from "./settings";
+
+import { pathExists, verify5eToolsPath, verify5eImgPath } from "./utils/fileUtils";
+
+import { toolsPostProcessor } from './markdown';
+
+import * as path from "path";
+import * as fs from "fs";
+
+import { ITEM_VIEW, MyItemView } from "./itemview";
+import { Itemary } from "./itemary"
+import { SPELL_VIEW, MySpellView } from "./spellview";
+import { Spellary } from "./spellary"
+import { BEAST_VIEW, MyBeastView } from "./beastview";
+import { Bestiary } from "./bestiary"
 
 // Remember to rename these classes and interfaces!
 
-export default class MyPlugin extends Plugin {
-	settings: MyPluginSettings;
+export default class ToolsFor5e extends Plugin {
+	settings: ToolsFor5eSettings;
 
-	async onload() {
-		await this.loadSettings();
+    private absoluteDataPath!: string = "";
+    private absoluteImgPath!: string = "";
 
-		// This creates an icon in the left ribbon.
-		this.addRibbonIcon('dice', 'Sample', (evt: MouseEvent) => {
-			// Called when the user clicks the icon.
-			new Notice('This is a notice!');
+//	private pathDataFolder!: string = '';
+//	private dataFolder!: TFile;
+//	private pathBooksJSON!: string = '';
+//	private booksJSON: TFile;
+
+	public myItemary!: Itemary;
+	public mySpellary!: Spellary;
+	public myBestiary!: Bestiary;
+
+	private lastMdLeaf: WorkspaceLeaf | null = null;
+
+	async onload()
+    {
+        console.log( "starting" );
+        //some testing:
+        await this.loadSettings();
+
+        const vaultRoot = (this.app.vault.adapter as any).basePath;
+
+        //generate external absolute paths
+        if( this.settings.fiveEtoolsExternalDir )
+        {
+            this.absoluteDataPath = path.resolve( vaultRoot, path.join( this.settings.fiveEtoolsExternalDir, 'data/' ) );
+            this.absoluteImgPath = path.resolve( vaultRoot, path.join( this.settings.fiveEtoolsExternalDir, 'img/' ) );
+
+            if( await pathExists( this.absoluteDataPath ) )
+            {
+                console.log( "absolute data path exists: " + this.absoluteDataPath );
+                //check if it has a /data/books.json or /books.json
+            }
+            else
+            {
+                this.absoluteDataPath = '';
+            }
+
+            if( await pathExists( this.absoluteImgPath ) )
+            {
+                console.log( "absolute img path exists: " + this.absoluteImgPath );
+                //check if it has a /data/books.json or /books.json
+            }
+            else
+            {
+                this.absoluteImgPath = '';
+            }
+        }
+        else
+        {
+            new Notice( "No 5etools data selected..." );
+            //console.log( "No 5etools data selected..." );
+        }
+
+        // This adds a settings tab so the user can configure various aspects of the plugin
+        this.addSettingTab( new ToolsFor5eSettingsTab( this.app, this ) );
+
+        this.myBestiary = new Bestiary( this.app, this );
+        await this.myBestiary.build( this.absoluteDataPath, this.absoluteImgPath );
+        await this.registerSources( this.myBestiary.getSources() );
+
+        this.mySpellary = new Spellary( this.app, this );
+        await this.mySpellary.build( this.absoluteDataPath, this.absoluteImgPath );
+        await this.registerSources( this.mySpellary.getSources() );
+
+        this.myItemary = new Itemary( this.app, this );
+        await this.myItemary.build( this.absoluteDataPath, this.absoluteImgPath );
+        await this.registerSources( this.myItemary.getSources() );
+
+
+		this.addRibbonIcon('sword', 'D&D items', (evt: MouseEvent) => {
+			void this.openPane( ITEM_VIEW, MyItemView );
+			//void this.openItemsPane();
 		});
 
-		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
-		const statusBarItemEl = this.addStatusBarItem();
-		statusBarItemEl.setText('Status bar text');
-
-		// This adds a simple command that can be triggered anywhere
-		this.addCommand({
-			id: 'open-modal-simple',
-			name: 'Open modal (simple)',
-			callback: () => {
-				new SampleModal(this.app).open();
-			}
-		});
-		// This adds an editor command that can perform some operation on the current editor instance
-		this.addCommand({
-			id: 'replace-selected',
-			name: 'Replace selected content',
-			editorCallback: (editor: Editor, view: MarkdownView) => {
-				editor.replaceSelection('Sample editor command');
-			}
-		});
-		// This adds a complex command that can check whether the current state of the app allows execution of the command
-		this.addCommand({
-			id: 'open-modal-complex',
-			name: 'Open modal (complex)',
-			checkCallback: (checking: boolean) => {
-				// Conditions to check
-				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
-				if (markdownView) {
-					// If checking is true, we're simply "checking" if the command can be run.
-					// If checking is false, then we want to actually perform the operation.
-					if (!checking) {
-						new SampleModal(this.app).open();
-					}
-
-					// This command will only show up in Command Palette when the check function returns true
-					return true;
-				}
-				return false;
-			}
+        this.addRibbonIcon('scroll', 'D&D spells', (evt: MouseEvent) => {
+			void this.openPane( SPELL_VIEW, MySpellView );
+			//void this.openSpellsPane();
 		});
 
-		// This adds a settings tab so the user can configure various aspects of the plugin
-		this.addSettingTab(new SampleSettingTab(this.app, this));
-
-		// If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
-		// Using this function will automatically remove the event listener when this plugin is disabled.
-		this.registerDomEvent(document, 'click', (evt: MouseEvent) => {
-			new Notice("Click");
+		this.addRibbonIcon('skull', 'D&D monsters', (evt: MouseEvent) => {
+			void this.openPane( BEAST_VIEW, MyBeastView );
+			//void this.openMonstersPane();
 		});
 
-		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
-		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
+
+		// register views
+		this.registerView( ITEM_VIEW, ( leaf: WorkspaceLeaf ) => new MyItemView( leaf, this ) );
+        this.registerView( SPELL_VIEW, ( leaf: WorkspaceLeaf ) => new MySpellView( leaf, this ) );
+		this.registerView( BEAST_VIEW, ( leaf: WorkspaceLeaf ) => new MyBeastView( leaf, this ) );
+
+
+        //this.app.workspace.onLayoutReady( () => this.build() );
+
+
+		//register markdown post-processor
+		this.registerMarkdownPostProcessor( toolsPostProcessor( this ) );
+
+		//whenever the edit leaf changes, write to tracker variable this.lastMdLeaf:
+		this.registerEvent(
+      		this.app.workspace.on("active-leaf-change", (leaf) => {
+        		const mv = this.app.workspace.getActiveViewOfType( MarkdownView );
+        		if (mv) this.lastMdLeaf = mv.leaf;
+      		}));
 
 	}
 
+    async registerSources( sources: Set<string> )
+    {
+        for (const source of sources)
+        {
+            if( !( source in this.settings.enabledSources ) )
+            {
+                this.settings.enabledSources[ source ] = false; //default disabled
+            }
+        }
+        await this.saveSettings();
+    }
+
 	onunload() {
+		console.debug("unloading Tools for 5e...");
+		this.app.workspace
+		   .getLeavesOfType(ITEM_VIEW)
+		   .forEach((leaf) => leaf.detach());
+
+        this.app.workspace
+           .getLeavesOfType(SPELL_VIEW)
+           .forEach((leaf) => leaf.detach());
+
+	   this.app.workspace
+		  .getLeavesOfType(BEAST_VIEW)
+		  .forEach((leaf) => leaf.detach());
 	}
 
 	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<MyPluginSettings>);
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<ToolsFor5eSettings>);
 	}
 
 	async saveSettings() {
 		await this.saveData(this.settings);
 	}
-}
 
-class SampleModal extends Modal {
-	constructor(app: App) {
-		super(app);
-	}
+	async openPane( viewType: string, instance: MyItemView | MySpellView | MyBeastView )		//( ITEM_VIEW, MyItemView )
+	{
+		const { workspace } = this.app;
 
-	onOpen() {
-		let {contentEl} = this;
-		contentEl.setText('Woah!');
-	}
+		let leaf: WorkspaceLeaf | null = null;
+		let presentLeaf = workspace.getLeavesOfType( viewType ).first();
 
-	onClose() {
-		const {contentEl} = this;
-		contentEl.empty();
+		if( presentLeaf && presentLeaf.view instanceof instance )
+		{
+			console.debug( "Pane of type " + viewType + " already there." );
+			leaf = presentLeaf;
+		}
+		else
+		{
+			leaf = workspace.getRightLeaf(false);
+			await leaf.setViewState({ type: viewType, active: true });
+		}
+		await workspace.revealLeaf( leaf );
 	}
 }

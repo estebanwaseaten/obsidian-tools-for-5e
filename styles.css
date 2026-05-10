@@ -6,3 +6,268 @@ available in the app when your plugin is enabled.
 If your plugin does not need CSS, delete this file.
 
 */
+
+/*  ###   ###   #   #  #   #   ###   #   #
+ * #     #   #  ## ##  ## ##  #   #  ##  #
+ * #     #   #  # # #  # # #  #   #  # # #
+ * #     #   #  #   #  #   #  #   #  #  ##
+ *  ###   ###   #   #  #   #   ###   #   #
+*/
+
+.parse-items-too-header{
+    flex: 0 0 auto;
+    width: 100%;
+    display: flex;
+    #border: 1px solid red;
+    margin-bottom: 2px;
+}
+
+.parse-items-too-search-bar{
+    width: 100%;
+    #border: 1px solid green;
+}
+
+.parse-items-too-filter{
+    width: 32px;
+    border: 1px solid #DDDDDD;
+    display: flex;
+    align-items: center;        /* vertical */
+    justify-content: center;    /* horizontal */
+    border-radius: 5px;
+    margin-left: 2px;
+}
+
+.parse-items-too-filter svg{
+    display: block;
+    max-width: 100%;
+    max-height: 100%;
+}
+
+.parse-items-too-search-results{
+    flex: 1 1 auto;     /* take remaining space */
+    min-height: 0;      /* allow shrinking so it can scroll */
+    overflow: auto;     /* or overflow-y: auto; */
+}
+
+/*
+ *      EDITOR STYLING
+ */
+
+.parse-items-too-editor-textblock{
+    flex: 1 1 auto;
+}
+
+.parse-items-too-editor-imgblock{
+    flex: 0 0 100px;
+    max-height: 100%;
+    overflow: hidden;
+    border-radius: 3px;
+    padding: 2px;
+}
+
+.parse-items-too-editor-imgbgblock{
+    width: 100px;         /* definite size so the img can size against it */
+    height: 100px;
+    overflow: hidden;
+    border-radius: 3px;
+    padding: 2px;
+    background-color: rgba(255, 255, 255, 0.6);
+    /*background-color: #FFFFFF;*/
+}
+
+.parse-items-too-editor-imgbgblock img{
+  width: 100%;            /* make image fit the 100px column */
+  height: 100%;
+  object-fit: contain;        /* no distortion, full image visible */
+  object-position: center;    /* center it */
+  display: block;
+}
+
+
+.parse-items-too-editor-link-container{
+    /*border: 1px solid black;*/
+
+    display: inline-flex;
+    margin-right: 6px;
+}
+
+.parse-items-too-editor-link-icon{
+    /*border: 1px solid red;*/
+
+    margin-top: 3px;
+    margin-right: 6px;
+}
+
+.parse-items-too-editor-link-text{
+    /*border: 1px solid green;*/
+
+    align-self: baseline;
+}
+
+
+
+/*   #  #####  ####  #   #   ####
+ *   #    #    #     ## ##  #
+ *   #    #    ##    # # #   ###
+ *   #    #    #     #   #      #
+ *   #    #    ####  #   #  ####
+ */
+
+.parse-items-too-item-view{
+    /*border: 1px solid black;*/
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.parse-items-too-item-table {
+    width: 100%;
+}
+
+.parse-items-too-item-name{
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.parse-items-too-item-detail{
+    font-size: 12px;
+}
+
+.parse-items-too-item-cell-button{
+    text-align: center;
+    width: 20px;
+}
+
+.parse-items-too-item-table tr:nth-child(odd) td{
+    background-color: #EEEEEE;
+}
+.parse-items-too-item-table tr:nth-child(even) td{
+    background-color: #FFFFFF;
+}
+
+/*
+ *      EDITOR STYLING
+ */
+
+.parse-items-too-editor-item-box{
+    width: 100%;
+    background-color: #A9C9E0;
+    border: 1px solid #4F7E9F;
+    border-radius: 3px;
+    padding: 4px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+    display: flex;
+}
+
+.parse-items-too-editor-textblock{}
+
+.parse-items-too-editor-item-header{
+    display: flex;
+
+}
+
+
+.parse-items-too-editor-item-name{
+    font-weight: bold;
+    width: auto;
+}
+
+.parse-items-too-editor-item-icon{
+    width: auto;
+    margin-top: 3px;
+    margin-right: 10px;
+}
+
+
+.parse-items-too-editor-item-text{
+
+}
+
+
+
+
+/*  ####  ###   ####  #     #      ####
+ * #      #  #  #     #     #     #
+ *  ###   ###   ##    #     #      ###
+ *     #  #     #     #     #         #
+ * ####   #     ####  ####  ####  ####
+*/
+
+
+.parse-items-too-spell-view{
+    /*border: 1px solid black;*/
+    height: 100%;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.parse-items-too-spell-table {
+    width: 100%;
+}
+
+.parse-items-too-spell-name{
+    font-size: 12px;
+    font-weight: bold;
+}
+
+.parse-items-too-spell-detail{
+    font-size: 12px;
+}
+
+.parse-items-too-spell-cell-button{
+    text-align: center;
+    width: 20px;
+}
+
+.parse-items-too-spell-table tr:nth-child(odd) td{
+    background-color: #EEEEEE;
+}
+.parse-items-too-spell-table tr:nth-child(even) td{
+    background-color: #FFFFFF;
+}
+
+
+/*
+ *      EDITOR STYLING
+ */
+
+.parse-items-too-editor-spell-box{
+    width: 100%;
+    background-color: #e0c0a9;
+    border: 1px solid #9E704F;
+    border-radius: 3px;
+    padding: 4px;
+    margin-top: 2px;
+    margin-bottom: 2px;
+    display: flex;
+}
+
+.parse-items-too-editor-textblock{}
+
+.parse-items-too-editor-spell-header{
+    display: flex;
+}
+
+
+.parse-items-too-editor-spell-name{
+    font-weight: bold;
+    width: auto;
+}
+
+.parse-items-too-editor-spell-school{
+    margin-left: 3px;
+    width: auto;
+}
+
+.parse-items-too-editor-spell-icon{
+    width: auto;
+    margin-top: 3px;
+    margin-right: 10px;
+}
+
+.parse-items-too-editor-spell-text{
+
+}
