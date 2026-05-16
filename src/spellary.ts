@@ -1,8 +1,7 @@
-import { Events, parseLinktext } from 'obsidian';
-import type { FrontMatterCache, TFile, App } from 'obsidian';
-import { pathExists, verify5eToolsPath, joinPath, listDirectoryPaths, readJSONFile, filterPathsRemove, filterPathsInclude } from "./utils/fileUtils";
-
 import { MySpell } from "./spell";
+import { Compendium } from './compendium';
+
+import { pathExists, verify5eToolsPath, joinPath, listDirectoryPaths, readJSONFile, filterPathsRemove, filterPathsInclude } from "./utils/fileUtils";
 
 interface SpellaryFile {
     spell?: SpellRaw[];
@@ -26,48 +25,22 @@ interface SpellRaw {
     // only the fields you actually need
 }
 
-//additional info is stored in the monster fluff:
-interface FluffHREF
-{
-    type: string;
-    path: string;
-}
-
-interface FluffImage
-{
-    type: string;
-    href: FluffHREF;
-}
-
 interface SpellFluffRaw {
     name: string;
     source: string;
-    images: FluffImage[];
+    images?: { type?: string; href: {type: string; path: string; }; }[];
 }
 
 
-export class Spellary extends Events
+export class SpellCompendium extends Compendium<SpellRaw, MySpell>
 {
-    #plugin: ToolsFor5e;
-
-    #spells: Map<string, Map<string, MyBeast>> = new Map();
-
-    isReady: boolean = false;
-    hasImages: boolean = false;
-
-    constructor( app: App, plugin: ToolsFor5e )
-    {
-        super(app, plugin);
-        this.#plugin = plugin;
-    }
-
     async build( absDataPath: string, absImgPath: string  )
     {
-        this.#spells = new Map();
+        this.data = new Map();
 
         if( absImgPath )
         {
-            this.hasImages = true;
+            this._hasImages = true;
         }
 
         const spellsPath = joinPath( absDataPath, "spells" );
@@ -100,12 +73,12 @@ export class Spellary extends Events
                 {
                     for( const spellSrc of spellFile.spell )
                     {
-                        const spell = this.mapToSpell( spellSrc );
-                        if( !this.#spells.has( spell.source ) )                 //source does not exist yet
+                        const spell = this.mapFromRaw( spellSrc );
+                        if( !this.data.has( spell.source ) )                 //source does not exist yet
                         {
-                            this.#spells.set( spell.source, new Map() );        //add new source map
+                            this.data.set( spell.source, new Map() );        //add new source map
                         }
-                        this.#spells.get( spell.source )!.set( spell.name, spell ); //add the monster to the source
+                        this.data.get( spell.source )!.set( spell.name, spell ); //add the monster to the source
                     }
                 }
             }
@@ -123,7 +96,7 @@ export class Spellary extends Events
                     // data.class ist dein Array mit den Klassen
 
                     // Jetzt suchst du in deiner vorhandenen Map:
-                    const existing = this.#spells.get( source )?.get( spellName );
+                    const existing = this.data.get( source )?.get( spellName );
                     if( !existing )
                         continue;
 
@@ -148,7 +121,7 @@ export class Spellary extends Events
                     for( const spellFluff of spellFile.spellFluff )
                     {
                         //console.log( "adding fluff to: " + monsterFluff.source + ": " + monsterFluff.name );
-                        const existing = this.#spells.get( spellFluff.source )?.get( spellFluff.name ); //does beast exist in our list?
+                        const existing = this.data.get( spellFluff.source )?.get( spellFluff.name ); //does beast exist in our list?
                         if( existing )
                         {
                             existing.fluffImage = spellFluff.images?.[0]?.href?.path ?? "";
@@ -167,35 +140,20 @@ export class Spellary extends Events
             console.log( spell.name + ": " + Array.from(spell.classNames || []) + Array.from(spell.classVariantNames || []) );
         }*/
 
-        this.isReady = true;
+        this._isReady = true;
         this.trigger( "changed" ); //notifies all listeners
     }
 
-    private mapToSpell( m: SpellRaw ): MySpell
+    private mapFromRaw( raw: SpellRaw ): MySpell
     {
-        return {
-           name: m.name,
-           source: m.source,
+        const  spell: MySpell = {
+            ...raw,
+
            // cr: m.cr,
            // map other fields you need
        };
-    }
 
-    getSpells(): MySpell[]
-    {
-        return Array.from( this.#spells.entries() )
-             .filter( ([source]) => this.#plugin.settings.enabledSources[source] ?? true )
-             .flatMap( ([, spells]) => Array.from( spells.values() ) );
-    }
-
-    getSpellsBySource( source: string ): MySpell[]
-    {
-        return Array.from( this.#spells.get( source )?.values() ?? [] );
-    }
-
-    getSources(): string[]
-    {
-        return Array.from( this.#spells.keys() ).sort();
+       return spell;
     }
 
     getClasses(): string[]

@@ -21,8 +21,8 @@ export interface MyItem
     damage2: string | number;
     ac: string | number;
     range: string | number;
-    rarity: string;
-    rarityInt: number;
+    rarity?: string;
+    rarityInt?: number;
     type: string;
     variants: MyVariant[];
 
@@ -48,7 +48,7 @@ export class ItemSuggestionModal extends FuzzySuggestModal<MyItem>
     {
         return this.items;
     }
-    
+
     onChooseItem( item: MyItem ): void
     {
         this.onPick( item );

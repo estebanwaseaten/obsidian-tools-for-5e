@@ -16,8 +16,6 @@ export interface MySpell
     detail: string;
     infotext: string;
     school: string;
-    classes: string;
-    classArray: string[];
     source: string;
 
     //from fluff

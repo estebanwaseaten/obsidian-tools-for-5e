@@ -1,8 +1,6 @@
-import { Events, parseLinktext } from 'obsidian';
-import type { FrontMatterCache, TFile, App } from 'obsidian';
-import { pathExists, verify5eToolsPath, joinPath, listDirectoryPaths, readJSONFile } from "./utils/fileUtils";
-
+import { Compendium } from './compendium';
 import { MyVariant, MyItem } from "./item";
+import { pathExists, verify5eToolsPath, joinPath, listDirectoryPaths, readJSONFile } from "./utils/fileUtils";
 
 // json import data structure
 // json import data structure
@@ -16,7 +14,7 @@ interface ItemRaw {
     name: string;
     source: string;
 
-    rarity: string;
+    rarity?: string;
     page?: string;
 
     baseItem?: string;
@@ -64,28 +62,15 @@ interface ItemFluffRaw {
     images?: FluffImage[];
 }
 
-export class Itemary extends Events
+export class ItemCompendium extends Compendium<ItemRaw, MyItem>
 {
-    #plugin: ToolsFor5e;
-
-    #items: Map<string, Map<string, MyBeast>> = new Map();
-
-    isReady: boolean = false;
-    hasImages: boolean = false;
-
-    constructor( app: App, plugin: ToolsFor5e )
-    {
-        super(app, plugin);
-        this.#plugin = plugin;
-    }
-
     async build( absDataPath: string, absImgPath: string )
     {
-        this.#items = new Map();
+        this.data = new Map();
 
         if( absImgPath )
         {
-            this.hasImages = true;
+            this._hasImages = true;
         }
 
         const baseItemsPath = joinPath( absDataPath, "items-base.json" );
@@ -108,13 +93,13 @@ export class Itemary extends Events
 
             for( const item of baseItemFile.baseitem )
             {
-                const newItem = this.mapToItem( item ); //translate from json structure to my own
+                const newItem = this.mapFromRaw( item ); //translate from json structure to my own
 
-                if( !this.#items.has( newItem.source ) )                 //source does not exist yet
+                if( !this.data.has( newItem.source ) )                 //source does not exist yet
                 {
-                    this.#items.set( newItem.source, new Map() );        //add new source map
+                    this.data.set( newItem.source, new Map() );        //add new source map
                 }
-                this.#items.get( newItem.source )!.set( newItem.name, newItem ); //add the monster to the source
+                this.data.get( newItem.source )!.set( newItem.name, newItem ); //add the monster to the source
             }
 
 
@@ -131,13 +116,13 @@ export class Itemary extends Events
             for( const item of itemFile.item )
             {
                 //console.log( "adding: " + item.source + ": " + item.name );
-                const newItem = this.mapToItem( item ); //translate from json structure to my own
+                const newItem = this.mapFromRaw( item ); //translate from json structure to my own
 
-                if( !this.#items.has( newItem.source ) )                 //source does not exist yet
+                if( !this.data.has( newItem.source ) )                 //source does not exist yet
                 {
-                    this.#items.set( newItem.source, new Map() );        //add new source map
+                    this.data.set( newItem.source, new Map() );        //add new source map
                 }
-                this.#items.get( newItem.source )!.set( newItem.name, newItem ); //add the monster to the source
+                this.data.get( newItem.source )!.set( newItem.name, newItem ); //add the monster to the source
             }
         }
         catch (e)
@@ -145,39 +130,20 @@ export class Itemary extends Events
             console.error("Error reading Bestiary:", e);
         }
 
-        //
-
-
-        this.isReady = true;
+        this._isReady = true;
         this.trigger( "changed" ); //notifies all listeners
     }
 
     //convert json data to internal MyBeast  format
-    private mapToItem( i: ItemRaw ): MyItem
+    private mapFromRaw( raw: ItemRaw ): MyItem
     {
+        //console.log(raw.name + ": " + raw.rarity );
         return {
-           name: i.name,
-           source: i.source,
+            ...raw,
+
 
 
            // map other fields you need
        };
-    }
-
-    getItems(): MyItem[]
-    {
-        return Array.from( this.#items.entries() )
-             .filter( ([source]) => this.#plugin.settings.enabledSources[source] ?? true )
-             .flatMap( ([, items]) => Array.from( items.values() ) );
-    }
-
-    getItemsBySource( source: string ): MyItem[]
-    {
-        return Array.from( this.#items.get(source)?.values() ?? [] );
-    }
-
-    getSources(): string[]
-    {
-        return Array.from( this.#items.keys() ).sort();
     }
 }

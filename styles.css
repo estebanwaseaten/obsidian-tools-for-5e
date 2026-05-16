@@ -13,21 +13,138 @@ If your plugin does not need CSS, delete this file.
  * #     #   #  #   #  #   #  #   #  #  ##
  *  ###   ###   #   #  #   #   ###   #   #
 */
+.tools-for-5e-encounter-header
+{
+        height: 50px;
+}
 
-.parse-items-too-header{
+.tools-for-5e-encounter-header-title
+{
+
+}
+
+.tools-for-5e-encounter-controls
+{
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.tools-for-5e-control-btn
+{
+    background: transparent;
+    border: none;
+    padding: 6px;
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.tools-for-5e-control-btn:hover
+{
+    background-color: var(--background-modifier-hover);
+    color: var(--text-normal);
+}
+
+
+.tools-for-5e-round-display
+{
+    font-size: var(--font-small);
+    font-weight: var(--font-semibold);
+    color: var(--text-normal);
+    background-color: var(--background-primary);
+    padding: 4px 8px;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+}
+
+.tools-for-5e-encounter-row-container
+{
+    display: flex;
+    height: 24px;
+}
+
+.tools-for-5e-encounter-row-container.friendly
+{
+    border-left: 4px solid var(--text-success); /* Grün */
+}
+
+.tools-for-5e-encounter-row-container.neutral
+{
+    border-left: 4px solid var(--text-warning); /* Gelb/Orange */
+}
+.tools-for-5e-encounter-row-container.hostile
+{
+    border-left: 4px solid var(--text-error); /* Rot */
+}
+
+.tools-for-5e-encounter-row-container.is-active {
+    border-color: var(--interactive-accent);
+    background-color: var(--background-modifier-hover);
+    box-shadow: 0 0 8px rgba(var(--interactive-accent-rgb), 0.4);
+}
+
+.tools-for-5e-encounter-row-icon
+{
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 24px;
+    height: 24px;
+}
+
+.participant-card.character .tools-for-5e-encounter-row-icon {
+    color: var(--text-success);
+}
+
+/* NPC: Blau/Cyan (Nativ-Variable für Informationen/Info-Blöcke) */
+.participant-card.npc .tools-for-5e-encounter-row-icon {
+    color: var(--text-accent);
+}
+
+/* Monster: Rot (Nativ-Variable für Fehler/Gefahr) */
+.participant-card.monster .tools-for-5e-encounter-row-icon {
+    color: var(--text-error);
+}
+
+.tools-for-5e-view-container
+{
+    padding: 0 !important;
+}
+
+.tools-for-5e-beast-view
+{
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+
+    /*border: 1px solid red;*/
+
+    padding: 0 !important;
+    overflow: hidden;
+}
+
+.tools-for-5e-header{
+    position: sticky;
+    top: 0;
     flex: 0 0 auto;
     width: 100%;
     display: flex;
-    #border: 1px solid red;
-    margin-bottom: 2px;
+    /*border: 1px solid red;*/
+    padding: 5px;
+    border-bottom: 1px solid var(--background-modifier-border);
+    background-color: var(--background-primary);
 }
 
-.parse-items-too-search-bar{
+.tools-for-5e-search-bar{
     width: 100%;
     #border: 1px solid green;
 }
 
-.parse-items-too-filter{
+.tools-for-5e-filter{
     width: 32px;
     border: 1px solid #DDDDDD;
     display: flex;
@@ -37,17 +154,41 @@ If your plugin does not need CSS, delete this file.
     margin-left: 2px;
 }
 
-.parse-items-too-filter svg{
+.tools-for-5e-filter svg{
     display: block;
     max-width: 100%;
     max-height: 100%;
 }
 
-.parse-items-too-search-results{
+.tools-for-5e-search-results{
     flex: 1 1 auto;     /* take remaining space */
     min-height: 0;      /* allow shrinking so it can scroll */
     overflow: auto;     /* or overflow-y: auto; */
 }
+
+.tools-for-5e-item-table
+{
+    /*border: 1px solid red;*/
+    width: 100%;
+}
+
+.tools-for-5e-item-row
+{
+    /*border: 1px solid red;*/
+}
+
+.tools-for-5e-item-table tr:nth-child(even) {
+    background-color: var(--background-secondary-alt);
+}
+
+.tools-for-5e-item-table tr:nth-child(odd) {
+    background-color: var(--background-primary);
+}
+
+.tools-for-5e-item-table tr:hover {
+    background-color: var(--background-modifier-hover);
+}
+
 
 /*
  *      EDITOR STYLING

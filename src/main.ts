@@ -8,12 +8,19 @@ import { toolsPostProcessor } from './markdown';
 import * as path from "path";
 import * as fs from "fs";
 
-import { ITEM_VIEW, MyItemView } from "./itemview";
-import { Itemary } from "./itemary"
-import { SPELL_VIEW, MySpellView } from "./spellview";
-import { Spellary } from "./spellary"
-import { BEAST_VIEW, MyBeastView } from "./beastview";
-import { Bestiary } from "./bestiary"
+import { ITEM_VIEW, MyItemView } from "./views/itemview";
+import { ItemCompendium } from "./itemary"
+import { SPELL_VIEW, MySpellView } from "./views/spellview";
+import { SpellCompendium } from "./spellary"
+import { BEAST_VIEW, MyBeastView } from "./views/beastview";
+import { BeastCompendium } from "./bestiary"
+
+import { CHARACTER_VIEW, MyCharacterView } from "./views/characterview";
+import { NPC_VIEW, MyNPCView } from "./views/npcview";
+
+import { ENCOUNTER_VIEW, MyEncounterView } from "./views/encounterview";
+
+import { DETAIL_VIEW, MyDetailView, DetailData } from "./views/detailview";
 
 // Remember to rename these classes and interfaces!
 
@@ -23,28 +30,240 @@ export default class ToolsFor5e extends Plugin {
     private absoluteDataPath!: string = "";
     private absoluteImgPath!: string = "";
 
-//	private pathDataFolder!: string = '';
-//	private dataFolder!: TFile;
-//	private pathBooksJSON!: string = '';
-//	private booksJSON: TFile;
-
-	public myItemary!: Itemary;
-	public mySpellary!: Spellary;
-	public myBestiary!: Bestiary;
+	public myItemary!: ItemCompendium;
+	public mySpellary!: SpellCompendium;
+    public myBestiary!: BeastCompendium;
 
 	private lastMdLeaf: WorkspaceLeaf | null = null;
 
 	async onload()
     {
         console.log( "starting" );
-        //some testing:
+
         await this.loadSettings();
+        await this.generatePaths();
+        await this.initializeFiles();
 
-        const vaultRoot = (this.app.vault.adapter as any).basePath;
+        // This adds a settings tab so the user can configure various aspects of the plugin
+        this.addSettingTab( new ToolsFor5eSettingsTab( this.app, this ) );
 
-        //generate external absolute paths
+        this.myBestiary = new BeastCompendium( this );
+        await this.myBestiary.build( this.absoluteDataPath, this.absoluteImgPath );
+        await this.registerSources( this.myBestiary.getSources() );
+
+        this.mySpellary = new SpellCompendium( this );
+        await this.mySpellary.build( this.absoluteDataPath, this.absoluteImgPath );
+        await this.registerSources( this.mySpellary.getSources() );
+
+        this.myItemary = new ItemCompendium( this );
+        await this.myItemary.build( this.absoluteDataPath, this.absoluteImgPath );
+        await this.registerSources( this.myItemary.getSources() );
+
+        // register views AFTER Compendii are built!
+        this.registerView( ITEM_VIEW, ( leaf: WorkspaceLeaf ) => new MyItemView( leaf, this, this.myItemary.getData(), this.myItemary.getSources() ) );
+        this.registerView( SPELL_VIEW, ( leaf: WorkspaceLeaf ) => new MySpellView( leaf, this, this.mySpellary.getData(), this.mySpellary.getSources() ) );
+        this.registerView( BEAST_VIEW, ( leaf: WorkspaceLeaf ) => new MyBeastView( leaf, this, this.myBestiary.getData(), this.myBestiary.getSources() ) );
+
+        this.registerView( CHARACTER_VIEW, (leaf) => new MyCharacterView( leaf, this ) );   //list view for characters
+        this.registerView( NPC_VIEW, (leaf) => new MyNPCView(leaf, this) );                 //list view for npcs
+        this.registerView( ENCOUNTER_VIEW, (leaf) => new MyEncounterView(leaf, this) );     //view for encounter
+
+        this.registerView( DETAIL_VIEW, ( leaf: WorkspaceLeaf ) => new MyDetailView( leaf ) );
+
+		this.addRibbonIcon('sword', 'D&D items', (evt: MouseEvent) => {
+			this.openPane( ITEM_VIEW, MyItemView );
+			//void this.openItemsPane();
+		});
+
+        this.addRibbonIcon('scroll', 'D&D spells', (evt: MouseEvent) => {
+			this.openPane( SPELL_VIEW, MySpellView );
+			//void this.openSpellsPane();
+		});
+
+		this.addRibbonIcon('skull', 'D&D monsters', (evt: MouseEvent) => {
+			this.openPane( BEAST_VIEW, MyBeastView );
+			//void this.openMonstersPane();
+		});
+
+        this.addRibbonIcon('users', 'D&D characters', () => {
+            this.openPane( CHARACTER_VIEW, MyCharacterView );
+        });
+
+        this.addRibbonIcon('venetian-mask', 'D&D NPCs', () => {
+            this.openPane( NPC_VIEW, MyNPCView );
+        });
+
+		//register markdown post-processor
+		this.registerMarkdownPostProcessor( toolsPostProcessor( this ) );
+
+		//whenever the edit leaf changes, write to tracker variable this.lastMdLeaf:
+		this.registerEvent(
+      		this.app.workspace.on("active-leaf-change", (leaf) => {
+        		const mv = this.app.workspace.getActiveViewOfType( MarkdownView );
+        		if (mv) this.lastMdLeaf = mv.leaf;
+      		}));
+
+        //start encounters:
+        this.addRibbonIcon("swords", "Start encounter", (evt) =>
+        {
+            const activeFile = this.app.workspace.getActiveFile();
+            const cache = activeFile ? this.app.metadataCache.getFileCache(activeFile) : null;
+
+            if (cache?.frontmatter?.type === "encounter")
+            {
+                this.openEncounterView( activeFile! );
+            }
+            else
+            {
+                new Notice("Current File is not an encounter.");
+            }
+        });
+
+        this.registerEvent(
+            this.app.workspace.on("file-menu", ( menu, file ) =>
+            {
+                if (!(file instanceof TFile)) return;
+
+                // Prüfen, ob es ein Encounter ist
+                const cache = this.app.metadataCache.getFileCache(file);
+                if (cache?.frontmatter?.type === "encounter")
+                {
+                    menu.addItem((item) => {
+                        item.setTitle("Start encounter")
+                            .setIcon("swords") // Obsidian Icon Name
+                            .onClick(async () => {
+                                this.openEncounterView( file );
+                            });
+                    });
+                }
+            }));
+
+	}
+
+    async initializeFiles()
+    {
+        const files = ["characters.json", "npcs.json"];
+        for (const file of files)
+        {
+            if( !(await this.app.vault.adapter.exists(file)) )
+            {
+                await this.app.vault.adapter.write(file, JSON.stringify([], null, 2));
+                console.log(`${file} wurde erstellt.`);
+            }
+        }
+    }
+
+
+
+    async registerSources( sources: Set<string> )
+    {
+        for (const source of sources)
+        {
+            if( !( source in this.settings.enabledSources ) )
+            {
+                this.settings.enabledSources[ source ] = false; //default disabled
+            }
+        }
+        await this.saveSettings();
+    }
+
+	onunload() {
+		console.debug("unloading Tools for 5e...");
+		this.app.workspace
+		   .getLeavesOfType(ITEM_VIEW)
+		   .forEach((leaf) => leaf.detach());
+
+        this.app.workspace
+           .getLeavesOfType(SPELL_VIEW)
+           .forEach((leaf) => leaf.detach());
+
+	   this.app.workspace
+		  .getLeavesOfType(BEAST_VIEW)
+		  .forEach((leaf) => leaf.detach());
+
+      this.app.workspace
+          .getLeavesOfType(DETAIL_VIEW)
+		  .forEach((leaf) => leaf.detach());
+	}
+
+	async loadSettings() {
+		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<ToolsFor5eSettings>);
+	}
+
+	async saveSettings() {
+		await this.saveData(this.settings);
+	}
+
+    async showDetail( payload: DetailData, sourceLeaf: WorkspaceLeaf )
+    {
+        let detailLeaf = this.app.workspace.getLeavesOfType(DETAIL_VIEW)[0];
+
+        if( !detailLeaf )
+        {
+            // Öffnet den View in der rechten Sidebar
+            //unter dem aktiven ListView
+            detailLeaf = this.app.workspace.createLeafBySplit( sourceLeaf, 'horizontal', false );
+            await detailLeaf.setViewState({ type: DETAIL_VIEW, active: true });
+        }
+
+        const view = detailLeaf.view as MyDetailView;
+        view.update( payload );
+
+        // Macht den View sichtbar
+        this.app.workspace.revealLeaf(detailLeaf);
+    }
+
+    async openEncounterView( file )
+    {
+        //console.log( "activateEncounterView " );
+        const { workspace } = this.app;
+
+        let leaf = workspace.getLeavesOfType( ENCOUNTER_VIEW ).first();
+        if( !leaf )
+        {
+            leaf = workspace.openPopoutLeaf();
+            await leaf.setViewState( {type: ENCOUNTER_VIEW, active: true } );
+        }
+
+        if( leaf.view instanceof MyEncounterView )
+        {
+            await leaf.view.loadEncounter( file );
+
+            workspace.setActiveLeaf( leaf, { focus: true });
+            const win = (leaf.view.containerEl.ownerDocument?.defaultView) as any;
+
+            if (win) win.focus();
+        }
+    }
+
+	async openPane( viewType: string, instance: MyItemView | MySpellView | MyBeastView )		//( ITEM_VIEW, MyItemView )
+	{
+		const { workspace } = this.app;
+
+		let leaf: WorkspaceLeaf | null = null;
+		let presentLeaf = workspace.getLeavesOfType( viewType ).first();
+
+		if( presentLeaf && presentLeaf.view instanceof instance )
+		{
+			console.debug( "Pane of type " + viewType + " already there." );
+			leaf = presentLeaf;
+		}
+		else
+		{
+			leaf = workspace.getRightLeaf(false);
+			await leaf.setViewState({ type: viewType, active: true });
+		}
+		await workspace.revealLeaf( leaf );
+	}
+
+
+    private async generatePaths()
+    {
+        // generate external absolute paths
         if( this.settings.fiveEtoolsExternalDir )
         {
+            const vaultRoot = (this.app.vault.adapter as any).basePath;
+
             this.absoluteDataPath = path.resolve( vaultRoot, path.join( this.settings.fiveEtoolsExternalDir, 'data/' ) );
             this.absoluteImgPath = path.resolve( vaultRoot, path.join( this.settings.fiveEtoolsExternalDir, 'img/' ) );
 
@@ -73,112 +292,5 @@ export default class ToolsFor5e extends Plugin {
             new Notice( "No 5etools data selected..." );
             //console.log( "No 5etools data selected..." );
         }
-
-        // This adds a settings tab so the user can configure various aspects of the plugin
-        this.addSettingTab( new ToolsFor5eSettingsTab( this.app, this ) );
-
-        this.myBestiary = new Bestiary( this.app, this );
-        await this.myBestiary.build( this.absoluteDataPath, this.absoluteImgPath );
-        await this.registerSources( this.myBestiary.getSources() );
-
-        this.mySpellary = new Spellary( this.app, this );
-        await this.mySpellary.build( this.absoluteDataPath, this.absoluteImgPath );
-        await this.registerSources( this.mySpellary.getSources() );
-
-        this.myItemary = new Itemary( this.app, this );
-        await this.myItemary.build( this.absoluteDataPath, this.absoluteImgPath );
-        await this.registerSources( this.myItemary.getSources() );
-
-
-		this.addRibbonIcon('sword', 'D&D items', (evt: MouseEvent) => {
-			void this.openPane( ITEM_VIEW, MyItemView );
-			//void this.openItemsPane();
-		});
-
-        this.addRibbonIcon('scroll', 'D&D spells', (evt: MouseEvent) => {
-			void this.openPane( SPELL_VIEW, MySpellView );
-			//void this.openSpellsPane();
-		});
-
-		this.addRibbonIcon('skull', 'D&D monsters', (evt: MouseEvent) => {
-			void this.openPane( BEAST_VIEW, MyBeastView );
-			//void this.openMonstersPane();
-		});
-
-
-		// register views
-		this.registerView( ITEM_VIEW, ( leaf: WorkspaceLeaf ) => new MyItemView( leaf, this ) );
-        this.registerView( SPELL_VIEW, ( leaf: WorkspaceLeaf ) => new MySpellView( leaf, this ) );
-		this.registerView( BEAST_VIEW, ( leaf: WorkspaceLeaf ) => new MyBeastView( leaf, this ) );
-
-
-        //this.app.workspace.onLayoutReady( () => this.build() );
-
-
-		//register markdown post-processor
-		this.registerMarkdownPostProcessor( toolsPostProcessor( this ) );
-
-		//whenever the edit leaf changes, write to tracker variable this.lastMdLeaf:
-		this.registerEvent(
-      		this.app.workspace.on("active-leaf-change", (leaf) => {
-        		const mv = this.app.workspace.getActiveViewOfType( MarkdownView );
-        		if (mv) this.lastMdLeaf = mv.leaf;
-      		}));
-
-	}
-
-    async registerSources( sources: Set<string> )
-    {
-        for (const source of sources)
-        {
-            if( !( source in this.settings.enabledSources ) )
-            {
-                this.settings.enabledSources[ source ] = false; //default disabled
-            }
-        }
-        await this.saveSettings();
     }
-
-	onunload() {
-		console.debug("unloading Tools for 5e...");
-		this.app.workspace
-		   .getLeavesOfType(ITEM_VIEW)
-		   .forEach((leaf) => leaf.detach());
-
-        this.app.workspace
-           .getLeavesOfType(SPELL_VIEW)
-           .forEach((leaf) => leaf.detach());
-
-	   this.app.workspace
-		  .getLeavesOfType(BEAST_VIEW)
-		  .forEach((leaf) => leaf.detach());
-	}
-
-	async loadSettings() {
-		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData() as Partial<ToolsFor5eSettings>);
-	}
-
-	async saveSettings() {
-		await this.saveData(this.settings);
-	}
-
-	async openPane( viewType: string, instance: MyItemView | MySpellView | MyBeastView )		//( ITEM_VIEW, MyItemView )
-	{
-		const { workspace } = this.app;
-
-		let leaf: WorkspaceLeaf | null = null;
-		let presentLeaf = workspace.getLeavesOfType( viewType ).first();
-
-		if( presentLeaf && presentLeaf.view instanceof instance )
-		{
-			console.debug( "Pane of type " + viewType + " already there." );
-			leaf = presentLeaf;
-		}
-		else
-		{
-			leaf = workspace.getRightLeaf(false);
-			await leaf.setViewState({ type: viewType, active: true });
-		}
-		await workspace.revealLeaf( leaf );
-	}
 }

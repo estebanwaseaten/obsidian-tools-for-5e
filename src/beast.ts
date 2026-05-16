@@ -1,29 +1,65 @@
 import { App, FuzzySuggestModal } from "obsidian";
 
+/*name: string;
+source: string;
+page?: string;
+size?: string;
+type?: string;
+ac?: string[];  //can be an array
+hp?: {
+    special?: string;
+    average?: string;
+    formula?: string; };
+speed?: {
+    walk?: string;
+    swim?: string;
+    canHover?: boolean;
+    fly?: { number?: string; condition?: string } | string;
+};
+
+str?: string;
+dex?: string;
+con?: string;
+int?: string;
+wis?: string;
+cha?: string;
+
+//skill
+//senses
+passive?: string;
+
+immune?: string[];
+conditionImmune?: string[];
+languages?: string[];
+
+cr?: string;
+
+trait?: {name: string; entries: string[]; }[];
+action?: {name: string; entries: string[]; }[];
+
+hasToken?: boolean;
+hasFluff?: boolean;
+hasFluffImages?: boolean;*/
 
 export interface MyBeast
 {
-    id: string;
-    raw: string;
-    tags: string;
     name: string;
-    markdownlink: string;
-    imagePath: string;
-    filePath: string;
-    detail: string;
-    infotext: string;
-    cost: string | number;
-    weight: string | number;
-    damage: string | number;
-    damage2: string | number;
-    ac: string | number;
-    range: string | number;
-    rarity: string;
-    rarityInt: number;
-    type: string;
-    variants: MyVariant[];
     source: string;
+    page?: string;
 
+    str?: string;
+    dex?: string;
+    con?: string;
+    int?: string;
+    wis?: string;
+    cha?: string;
+
+    raw?: string;
+    tags?: string;
+
+    ac?: string | number;
+
+    //hasFluff?: boolean;
     fluffText?: string | null;
     fluffImage?: string | null;
 }
