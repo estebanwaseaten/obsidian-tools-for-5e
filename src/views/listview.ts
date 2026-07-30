@@ -49,6 +49,11 @@ export abstract class MyListView<DataType> extends ItemView
         this.allItems = data;        //fetch all data from enabled sources
     }
 
+    public get getAllItems(): readonly DataType[]
+    {
+        return this.allItems;
+    }
+
     async onOpen()
     {
         const root = this.contentEl;
@@ -126,6 +131,13 @@ export abstract class MyListView<DataType> extends ItemView
         this.searchEl = new SearchComponent( this.headerEl.createDiv("tools-for-5e-search-bar"))
             .setPlaceholder( placeholder )
             .onChange((q) => this.searchQueryChanged(q));
+    }
+
+    protected addHeaderButton( icon: string, title: string, onClick: () => void )
+    {
+        const btn = this.headerEl.createEl( "button", { cls: "clickable-icon", attr: {"aria-label": title, "title": title }});
+        setIcon( btn, icon );
+        btn.addEventListener( "click", onClick );
     }
 
     protected addDefaultSortElement()

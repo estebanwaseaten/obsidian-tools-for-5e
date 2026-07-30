@@ -98,13 +98,11 @@ export class MyNPCView extends MyListView<MyNPC>
     {
         if( action === "default" )
         {
-            addItemToEncounter(
+            addItemToEncounter(this.plugin,
                 {
                     ref: item.filePath,
-                    name: item.name,
-                    ini: item.ini,
-                    hpMax: item.hpMax,
-                    kind: "npc"
+                    kind: "npc",
+                    name: item.name
                 });
         }
         else if( action === "edit" )

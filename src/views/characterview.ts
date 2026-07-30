@@ -62,7 +62,27 @@ export class MyCharacterView extends MyListView<MyCharacter>
     protected setupUI(): void
     {
         this.addSearchBar( "Search characters..." );
+        this.addHeaderButton( "list-plus", "Add all to encounter", () => this.addAllToEncounter() );
         // Vielleicht kein Sort-Element nötig, wenn die Liste klein ist?
+    }
+
+    private async addAllToEncounter()
+    {
+        if( this.allItems.length === 0 )
+        {
+            new Notice("No characters to add.");
+            return;
+        }
+
+        for( const item of this.allItems )
+        {
+           await addItemToEncounter( this.plugin,
+               {
+                   ref: item.filePath,
+                   kind: "character",
+                   name: item.name
+               });
+        }
     }
 
     protected renderRow(row: HTMLElement, char: MyCharacter): void
@@ -103,17 +123,16 @@ export class MyCharacterView extends MyListView<MyCharacter>
         if( action === "default" )
         {
             addItemToEncounter(
+                this.plugin,
                 {
                     ref: item.filePath,
-                    name: item.name,
-                    ini: item.ini,
-                    hpMax: item.hpMax,
-                    kind: "character"
+                    kind: "character",
+                    name: item.name
                 });
         }
         else if( action === "edit" )
         {
-            const file = this.app.vault.getAbstractFileByPath( char.filePath );
+            const file = this.app.vault.getAbstractFileByPath( item.filePath );
             if( file instanceof TFile )
             {
                 this.app.workspace.getLeaf().openFile( file );

@@ -1,5 +1,8 @@
 import { MySpell } from "./spell";
 import { Compendium } from './compendium';
+import { clean5eTags } from './utils/convUtils';
+
+
 
 import { pathExists, verify5eToolsPath, joinPath, listDirectoryPaths, readJSONFile, filterPathsRemove, filterPathsInclude } from "./utils/fileUtils";
 
@@ -146,12 +149,96 @@ export class SpellCompendium extends Compendium<SpellRaw, MySpell>
 
     private mapFromRaw( raw: SpellRaw ): MySpell
     {
-        const  spell: MySpell = {
-            ...raw,
+        const useMeters = this.plugin.useMetricUnits();
 
-           // cr: m.cr,
-           // map other fields you need
-       };
+        //casting time
+        let castingTimeStr = "—";
+        if( Array.isArray( raw.time ) && raw.time[0] )
+        {
+            castingTimeStr = `${raw.time[0].number} ${raw.time[0].unit}`;
+        }
+
+        //range
+        let rangeStr = "—";
+        if( raw.range )
+        {
+            if( raw.range.type === "self" )
+            {
+                rangeStr = "Self";
+            }
+            else if( raw.range.distance )
+            {
+                rangeStr = `${raw.range.distance.amount} ${raw.range.distance.type}`;
+                if( useMeters )
+                {
+                    rangeStr.replace( /(\d+)\s*ft\./gi, (match, feetStr) => {
+                        const feet = parseInt(feetStr, 10);
+                        const meters = (feet / 5) * 1.5;
+                        return `${Number(meters.toFixed(1))}m`;
+                    });
+                }
+            }
+        }
+
+        //components:
+        const comps: string[] = [];
+        if (raw.components)
+        {
+            if (raw.components.v) comps.push("V");
+            if (raw.components.s) comps.push("S");
+            if (raw.components.m)
+            {
+                const mText = typeof raw.components.m === "string" ? ` (${raw.components.m})` : " (M)";
+                comps.push(`M${mText}`);
+            }
+        }
+        const componentsStr = comps.join(", ") || "—";
+
+        //duration
+        let durationStr = "Instantaneous";
+        let isRitual = raw.meta?.ritual ?? false;
+
+
+
+        //school
+        const schools: Record<string, string> = { A: "Abjuration", C: "Conjuration", D: "Divination", E: "Enchantment", V: "Evocation", I: "Illusion", N: "Necromancy", T: "Transmutation" };
+        const schoolStr = schools[raw.school] || raw.school || "Unknown";
+
+        //info
+    /*    let infoTextHtml = "";
+        if( Array.isArray(raw.entries) )
+        {
+               infoTextHtml = raw.entries
+               .map((entry: any) => {
+                   if (typeof entry === "string") {
+                       return `<p>${clean5eTags(entry)}</p>`;
+                   }
+                   return "";
+               })
+               .join("");
+       }*/
+
+
+        const spell: MySpell = {
+        ...raw, // Behält alle restlichen Rohdaten bei
+        name: raw.name,
+        source: raw.source,
+        detail: raw.page ? raw.page.toString() : "",
+        level: raw.level === 0 ? "Cantrip" : `${raw.level}.`,
+        levelInt: raw.level ?? 0,
+        school: schoolStr,
+        castingtime: castingTimeStr,
+        range: rangeStr,
+        components: componentsStr,
+        duration: durationStr,
+    //    infotext: infoTextHtml,
+        isritual: isRitual,
+        markdownlink: "",
+        imagePath: "",
+        filePath: ""
+    };
+
+
 
        return spell;
     }

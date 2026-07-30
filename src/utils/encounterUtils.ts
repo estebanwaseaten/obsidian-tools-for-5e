@@ -1,18 +1,17 @@
 import { Notice, TFile } from "obsidian";
 
-export async function addItemToEncounter( data: { ref: string, name?: string, ini?: number, hpMax: number, source?: string; kind: string } )
+export async function addItemToEncounter( plugin: ToolsFor5e, data: { ref: string, kind: string, name?: string } )
 {
-    const activeFile = this.app.workspace.getActiveFile();
-
+    const activeFile = plugin.app.workspace.getActiveFile();
     if( !(activeFile instanceof TFile) )
     {
         new Notice("No active file found.");
         return;
     }
 
-    await this.app.fileManager.processFrontMatter( activeFile, (fm) =>
+    await plugin.app.fileManager.processFrontMatter( activeFile, ( frontmatter ) =>
     {
-        const currentType = fm['type'];
+        const currentType = frontmatter[ 'type' ];
 
         if (currentType && currentType !== 'encounter')
         {
@@ -20,19 +19,24 @@ export async function addItemToEncounter( data: { ref: string, name?: string, in
             return;
         }
 
-        // Initialisiere Encounter, falls neu
+        // initialise encounter if this is a file without other type. (--> does not overwrite characters)
         if( !currentType )
         {
-            fm['type'] = 'encounter';
-            fm['name'] = activeFile.basename;
-            fm['current_round'] = 0;
-            fm['current_pos'] = 0;
-            fm['participants'] = [];
+            frontmatter['type'] = 'encounter';
+            frontmatter['name'] = activeFile.basename;
+            frontmatter['current_round'] = 0;
+            frontmatter['current_pos'] = 0;
+            frontmatter['participants'] = [];
         }
 
-        const participants = fm['participants'] || [];
+        const participants = frontmatter['participants'] || [];
 
-
+        const alreadyExists = participants.some( (p: any) => p && p.ref === data.ref && p.kind === data.kind );
+        if( alreadyExists )
+          {
+              new Notice(`${data.name || "Entity"} is already in this encounter.`);
+              return;
+          }
 
         // Erstelle den Eintrag basierend auf dem Typ
         const newEntry: any =
@@ -40,13 +44,10 @@ export async function addItemToEncounter( data: { ref: string, name?: string, in
             ref: data.ref,
             kind: data.kind,
             name: data.name,
-            hp_max: data.hpMax,
-            hp_current: data.hpMax,
-            initiative: data.ini || 0,
         };
 
         participants.push( newEntry );
-        fm['participants'] = participants;
+        frontmatter['participants'] = participants;
 
         new Notice(`${data.name || "Entity"} added to encounter.`);
     });

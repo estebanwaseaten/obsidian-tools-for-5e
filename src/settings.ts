@@ -25,12 +25,17 @@ async function pickFolder(): Promise<string | null>
 // only save relative to vault paths to data and images
 export interface ToolsFor5eSettings
 {
+    useMetricUnits: boolean;
+    rollHealthpoints: boolean;
     fiveEtoolsExternalDir: string;
     enabledSources: Record<string, boolean>;
+
 }
 
 export const DEFAULT_SETTINGS: ToolsFor5eSettings =
 {
+    useMetricUnits: true,
+    rollHealthpoints: false,
     fiveEtoolsExternalDir: '',
     enabledSources: {},
 }
@@ -50,6 +55,28 @@ export class ToolsFor5eSettingsTab extends PluginSettingTab
         const vaultRoot = (this.plugin.app.vault.adapter as any).basePath;
 
 		containerEl.empty();
+
+        new Setting( containerEl )
+            .setName('use metric units?')
+            .setDesc('use metric units in statblocks')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.useMetricUnits) // Aktuellen Boolean-Wert laden
+                .onChange(async (value: boolean) => {
+                    this.plugin.settings.useMetricUnits = value; // Wert im Plugin-State aktualisieren
+                    await this.plugin.saveSettings();           // In der data.json von Obsidian speichern
+                })
+            );
+
+        new Setting( containerEl )
+            .setName('roll monster healthpoints?')
+            .setDesc('roll monster healthpoints when encounter is generated')
+            .addToggle(toggle => toggle
+                .setValue(this.plugin.settings.rollHealthpoints) // Aktuellen Boolean-Wert laden
+                .onChange(async (value: boolean) => {
+                    this.plugin.settings.rollHealthpoints = value; // Wert im Plugin-State aktualisieren
+                    await this.plugin.saveSettings();           // In der data.json von Obsidian speichern
+                })
+            );
 
         new Setting( containerEl )
             .setName('Locate 5etools folder')

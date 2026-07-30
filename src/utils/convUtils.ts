@@ -13,3 +13,11 @@ export function crToNumber(cr: string): number
 
     return parseFloat(val) || 0;
 }
+
+export function clean5eTags(text: string): string
+{
+    if( !text )
+        return "";
+
+    return text.replace(/\{@[a-z]+\s+([^|}]+)(?:\|[^}]+)?\}/gi, "$1");
+}

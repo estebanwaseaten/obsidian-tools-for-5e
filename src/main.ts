@@ -8,12 +8,15 @@ import { toolsPostProcessor } from './markdown';
 import * as path from "path";
 import * as fs from "fs";
 
+import { ConditionsModal, TextInputModal, NumInputModal, ConfirmModal } from "./utils/modalUtils"
+
 import { ITEM_VIEW, MyItemView } from "./views/itemview";
-import { ItemCompendium } from "./itemary"
+import { ItemCompendium } from "./itemary";
 import { SPELL_VIEW, MySpellView } from "./views/spellview";
-import { SpellCompendium } from "./spellary"
+import { SpellCompendium } from "./spellary";
+import { BeastUtils } from "./beast";
 import { BEAST_VIEW, MyBeastView } from "./views/beastview";
-import { BeastCompendium } from "./bestiary"
+import { BeastCompendium } from "./bestiary";
 
 import { CHARACTER_VIEW, MyCharacterView } from "./views/characterview";
 import { NPC_VIEW, MyNPCView } from "./views/npcview";
@@ -21,6 +24,8 @@ import { NPC_VIEW, MyNPCView } from "./views/npcview";
 import { ENCOUNTER_VIEW, MyEncounterView } from "./views/encounterview";
 
 import { DETAIL_VIEW, MyDetailView, DetailData } from "./views/detailview";
+
+import { PLAYER_INFO_VIEW, MyPlayerInfoView } from "./views/playerinfoview";
 
 // Remember to rename these classes and interfaces!
 
@@ -44,6 +49,9 @@ export default class ToolsFor5e extends Plugin {
         await this.generatePaths();
         await this.initializeFiles();
 
+        //pass settings to utility class:
+        BeastUtils.initialize( this.settings );
+
         // This adds a settings tab so the user can configure various aspects of the plugin
         this.addSettingTab( new ToolsFor5eSettingsTab( this.app, this ) );
 
@@ -60,15 +68,16 @@ export default class ToolsFor5e extends Plugin {
         await this.registerSources( this.myItemary.getSources() );
 
         // register views AFTER Compendii are built!
-        this.registerView( ITEM_VIEW, ( leaf: WorkspaceLeaf ) => new MyItemView( leaf, this, this.myItemary.getData(), this.myItemary.getSources() ) );
-        this.registerView( SPELL_VIEW, ( leaf: WorkspaceLeaf ) => new MySpellView( leaf, this, this.mySpellary.getData(), this.mySpellary.getSources() ) );
-        this.registerView( BEAST_VIEW, ( leaf: WorkspaceLeaf ) => new MyBeastView( leaf, this, this.myBestiary.getData(), this.myBestiary.getSources() ) );
+        this.registerView( ITEM_VIEW, (leaf) => new MyItemView( leaf, this, this.myItemary.getData(), this.myItemary.getSources() ) );
+        this.registerView( SPELL_VIEW, (leaf) => new MySpellView( leaf, this, this.mySpellary.getData(), this.mySpellary.getSources() ) );
+        this.registerView( BEAST_VIEW, (leaf) => new MyBeastView( leaf, this, this.myBestiary.getData(), this.myBestiary.getSources() ) );
 
         this.registerView( CHARACTER_VIEW, (leaf) => new MyCharacterView( leaf, this ) );   //list view for characters
         this.registerView( NPC_VIEW, (leaf) => new MyNPCView(leaf, this) );                 //list view for npcs
         this.registerView( ENCOUNTER_VIEW, (leaf) => new MyEncounterView(leaf, this) );     //view for encounter
 
-        this.registerView( DETAIL_VIEW, ( leaf: WorkspaceLeaf ) => new MyDetailView( leaf ) );
+        this.registerView( DETAIL_VIEW, (leaf) => new MyDetailView( leaf, this ) );
+        this.registerView( PLAYER_INFO_VIEW, (leaf) => new MyPlayerInfoView( leaf ) );
 
 		this.addRibbonIcon('sword', 'D&D items', (evt: MouseEvent) => {
 			this.openPane( ITEM_VIEW, MyItemView );
@@ -92,6 +101,30 @@ export default class ToolsFor5e extends Plugin {
         this.addRibbonIcon('venetian-mask', 'D&D NPCs', () => {
             this.openPane( NPC_VIEW, MyNPCView );
         });
+
+        this.addRibbonIcon( "monitor", "Open player display window", async () =>
+        {
+            await this.openPlayerWindow( null );
+        });
+
+        this.addRibbonIcon( "eraser", "Clear player display", async () =>
+        {
+            await this.clearPlayerWindow();
+        });
+
+        this.addRibbonIcon( "paper-plane", "Send message to player screen", async () =>
+        {
+            new TextInputModal( this.app, "Message to Players", "Message", async (value: string) =>
+                {
+                    if( value.trim().length > 0 )
+                    {
+                        await this.showTextInPlayerWindow( value );
+                        //await onChanged();
+                    }
+                } ).open();
+
+        });
+
 
 		//register markdown post-processor
 		this.registerMarkdownPostProcessor( toolsPostProcessor( this ) );
@@ -227,7 +260,7 @@ export default class ToolsFor5e extends Plugin {
 
         if( leaf.view instanceof MyEncounterView )
         {
-            await leaf.view.loadEncounter( file );
+            await leaf.view.loadEncounter( file );  //,  this.getAllItems );
 
             workspace.setActiveLeaf( leaf, { focus: true });
             const win = (leaf.view.containerEl.ownerDocument?.defaultView) as any;
@@ -255,6 +288,36 @@ export default class ToolsFor5e extends Plugin {
 		}
 		await workspace.revealLeaf( leaf );
 	}
+
+    public getBase64ImageAsSrcData( relImgPath: string ): string
+    {
+         if( !relImgPath )
+             return null;
+
+        const cleanFluffPath = relImgPath.replace(/\//g, path.sep);
+        const absoluteImgPath = path.join( this.absoluteImgPath, cleanFluffPath );
+
+        if( !fs.existsSync(absoluteImgPath) )
+        {
+           console.error("could not find image path: " + absoluteImgPath);
+           return null;
+       }
+
+       const imageBuffer = fs.readFileSync( absoluteImgPath );
+       const base64Image = imageBuffer.toString( 'base64' );
+
+       return `data:image/webp;base64,${base64Image}`;
+    }
+
+    public getImgPath()
+    {
+        return this.absoluteImgPath;
+    }
+
+    public getDataPath()
+    {
+        return this.absoluteDataPath;
+    }
 
 
     private async generatePaths()
@@ -293,4 +356,63 @@ export default class ToolsFor5e extends Plugin {
             //console.log( "No 5etools data selected..." );
         }
     }
+
+    public async openPlayerWindow()
+    {
+        const existingLeaves = this.app.workspace.getLeavesOfType( PLAYER_INFO_VIEW );
+
+        if( existingLeaves.length > 0 )
+        {
+            this.app.workspace.revealLeaf( existingLeaves[0] );
+            return;
+        }
+
+        const leaf = this.app.workspace.openPopoutLeaf();
+        await leaf.setViewState( { type: PLAYER_INFO_VIEW, active: true, state: null } );
+    }
+
+    //only if open
+    public async showInPlayerWindow( state: PlayerInfoState )
+    {
+        const existingLeaves =  this.app.workspace.getLeavesOfType( PLAYER_INFO_VIEW );
+
+        if( existingLeaves.length > 0 )
+        {
+            const view = existingLeaves[0].view as MyPlayerInfoView;
+            await view.setState( state, { history: false } );
+            return;
+        }
+    }
+
+    public async showImageInPlayerWindowSrc( imageSrc: string | null, altText?: string, backgroundColor?: string )
+    {
+        await this.showInPlayerWindow({ mode: "image", imageSrc, altText, backgroundColor });
+    }
+
+    public async showImageInPlayerWindowPath( imagePath: string | null, altText?: string, backgroundColor?: string )
+    {
+         await this.showInPlayerWindow({ mode: "image", imagePath, altText, backgroundColor });
+    }
+
+    public async showTextInPlayerWindow( text: string, backgroundColor?: string )
+    {
+        await this.showInPlayerWindow({ mode: "text", text, backgroundColor });
+    }
+
+    public async showCustomInPlayerWindow( html: string, backgroundColor?: string )
+    {
+        // not very safe setting inner HTML directly
+        await this.showInPlayerWindow({ mode: "custom", html, backgroundColor });
+    }
+
+    public async clearPlayerWindow( backgroundColor?: string )
+    {
+        await this.showInPlayerWindow({ mode: "empty", backgroundColor });
+    }
+
+    public useMetricUnits() : boolean
+    {
+        return this.settings?.useMetricUnits ?? false;
+    }
+
 }

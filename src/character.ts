@@ -1,4 +1,16 @@
 
+export interface CharacterYAML
+{
+    type: string;
+    status: string;
+    name: string;
+    race?: string;
+    class?: string;
+    ac?: number || null;
+    hpMax?: number || null;
+    iniBonus?: number || null;
+    source?: string;
+}
 
 export interface MyCharacter
 {

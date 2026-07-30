@@ -39,8 +39,12 @@ export class MyBeastView extends MyListView<MyBeast>
     {
         const td = row.createEl("td");
         td.createSpan({ text: item.name });
-        const td2 = row.createEl("td");
-        td2.createDiv( { text: "info", attr: { "data-action": "info" } } );
+    //    const td1 = row.createEl("td");
+    //    td1.createDiv( { text: item.hasFluff } );
+    //    const td1b = row.createEl("td");
+    //    td1b.createDiv( { text: item.hasFluffImages } );
+    //    const td2 = row.createEl("td");
+    //    td2.createDiv( { text: "info", attr: { "data-action": "info" } } );
         const td3 = row.createEl("td");
         td3.createDiv( { text: "insert", attr: { "data-action": "insert" } } );
     }
@@ -56,13 +60,12 @@ export class MyBeastView extends MyListView<MyBeast>
         else if( action === "insert" )
         {
             addItemToEncounter(
-            {
-                ref: item.source+":"+item.name,
-                name: item.name,
-                ini: item.ini,
-                hpMax: item.hpMax,
-                kind: "monster",
-            });
+                this.plugin,
+                {
+                    ref: item.source+":"+item.name,
+                    kind: "monster",
+                    name: item.name
+                });
         }
     }
 

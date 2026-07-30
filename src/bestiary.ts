@@ -121,20 +121,46 @@ export class BeastCompendium extends Compendium<MonsterRaw, MyBeast>
             for( const filePath of fluffFiles )
             {
                 const beastFile = await readJSONFile<BestiaryFile>( filePath );   //already returns as parsed json file
+                const fluffCache = new Map<string, any>();  //for lookup of _copy
 
                 if( beastFile.monsterFluff && Array.isArray( beastFile.monsterFluff ) )
                 {
                     for( const monsterFluff of beastFile.monsterFluff )
                     {
+                        fluffCache.set( monsterFluff.name, monsterFluff );    //cache current montser fluff
+
                         //console.log( "adding fluff to: " + monsterFluff.source + ": " + monsterFluff.name );
                         const existing = this.data.get( monsterFluff.source )?.get( monsterFluff.name ); //does beast exist in our list?
                         if( existing )
                         {
-                            existing.fluffImage = monsterFluff.images?.[0]?.href?.path ?? "";
+                            existing.fluffImage = monsterFluff.images?.[0]?.href?.path
+                                ?? monsterFluff._copy?._mod?.images?.items?.[0]?.href?.path
+                                ?? "";
                             existing.fluffText = this.extractFluffText( monsterFluff.entries );
+                        }
+                        else
+                        {
+                            //console.log("no match for fluff:", monsterFluff.source, monsterFluff.name);
+                        }
+                    }
+
+                    //second run to resolve _copy for fluffs (image is saved with a main object "Bandits" for its children "Bandit", ... )
+                    for( const monsterFluff of beastFile.monsterFluff )
+                    {
+                        const existing = this.data.get( monsterFluff.source )?.get( monsterFluff.name ); //does beast exist in our list?
+                        if( existing )
+                        {
+                            //need to lookup:
+                            if( existing.hasFluffImages && !existing.fluffImage )   //has no image yet, but should have
+                            {
+                                //console.log( "need to copy fluff: " + existing.name + existing + " copy:" + monsterFluff._copy.name)
+                                const parentFluff = fluffCache.get( monsterFluff._copy.name );
+                                existing.fluffImage =  parentFluff.images?.[0]?.href?.path ?? "";
+                            }
                         }
                     }
                 }
+
             }
         }
         catch (e)
@@ -168,7 +194,6 @@ export class BeastCompendium extends Compendium<MonsterRaw, MyBeast>
         const  beast: MyBeast = {
             ...m,   //copies identical names
            ac: Array.isArray(m.ac) ? m.ac.map( a => typeof a === 'object' ? a.special :  a ).join( "/") : (m.ac || ""),
-           hp: m.hp?.special ? m.hp.special : (m.hp?.average || "") + (m.hp?.formula ? ` (${m.hp.formula})` : ""),
            cr: typeof m.cr === 'object' ? m.cr.cr : (m.cr || "" ),
        };
 
