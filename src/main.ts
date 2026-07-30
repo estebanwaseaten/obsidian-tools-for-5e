@@ -299,7 +299,7 @@ export default class ToolsFor5e extends Plugin {
 
         if( !fs.existsSync(absoluteImgPath) )
         {
-           console.error("could not find image path: " + absoluteImgPath);
+           console.warn("could not find image path: " + absoluteImgPath);
            return null;
        }
 

@@ -846,12 +846,14 @@ export abstract class MyEncounterView extends ItemView
 
     private async showParticipantImage( participant: EncounterParticipant )
     {
+        // not a monster
         if( participant.kind !== "monster" )
         {
             await this.plugin.showTextInPlayerWindow( participant.participantData.name );
             return;   // maybe show name?
         }
 
+        // not shown at all
         if( participant.participantData.showImage === false )
         {
             await this.plugin.clearPlayerWindow();
@@ -864,6 +866,7 @@ export abstract class MyEncounterView extends ItemView
 
         if( !srcData )
         {
+            await this.plugin.showTextInPlayerWindow( participant.participantData.name );
             return;
         }
 

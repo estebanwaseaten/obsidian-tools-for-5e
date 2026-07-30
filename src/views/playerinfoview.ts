@@ -91,7 +91,11 @@ export class MyPlayerInfoView extends ItemView
             src = convertFileSrc( this.state.imagePath );
         }
 
-        if( !src ) return;
+        if( !src )
+        {
+            console.error( "no src" );
+            return;
+        }
 
         const img = this.contentEl.createEl( "img", { cls: "tools-for-5e-player-info-image" });
         img.src = src;
