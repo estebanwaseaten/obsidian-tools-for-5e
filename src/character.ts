@@ -6,10 +6,12 @@ export interface CharacterYAML
     name: string;
     race?: string;
     class?: string;
-    ac?: number || null;
-    hpMax?: number || null;
-    iniBonus?: number || null;
+    ac?: number | null;
+    hpMax?: number | null;
+    iniBonus?: number | null;
     source?: string;
+
+    attitude?: "friendly" | "neutral" | "hostile";
 }
 
 export interface MyCharacter

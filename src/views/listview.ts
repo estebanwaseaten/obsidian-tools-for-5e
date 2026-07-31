@@ -1,4 +1,4 @@
-import { EventRef, ItemView, SearchComponent, Menu, prepareFuzzySearch, setIcon, Notice } from "obsidian";
+import { EventRef, ItemView, WorkspaceLeaf, SearchComponent, Menu, prepareFuzzySearch, setIcon, Notice } from "obsidian";
 import type ToolsFor5e from "../main";     //only for default export
 import type { Compendium } from '../compendium';
 import type MenuItem from "obsidian";
@@ -9,7 +9,7 @@ export abstract class MyListView<DataType> extends ItemView
 {
     protected resultsEl!: HTMLElement;
     protected sortEl!: HTMLElement;
-    protected searchEl!: HTMLElement;
+    protected searchEl!: SearchComponent;
     protected headerEl!: HTMLElement;
     protected filterSourceEl!: HTMLElement;
 
@@ -118,12 +118,15 @@ export abstract class MyListView<DataType> extends ItemView
 
             this.sourceFilter.forEach( s => {   //s is the source string
                 if( this.sourceIndex.has(s) )
-                    sourceSet = sourceSet.union( this.sourceIndex.get(s)! );
+                    //sourceSet = sourceSet.union( this.sourceIndex.get(s)! );
+                    sourceSet = new Set([...sourceSet, ...(this.sourceIndex.get(s) ?? []) ]);
                 });
-            filteredSet = filteredSet.intersection( sourceSet );
+            //filteredSet = filteredSet.intersection( sourceSet );
+            filteredSet = new Set([...filteredSet].filter( x => sourceSet.has(x)));
         }
 
-        return Array.from(filteredSet, i => items[i]);
+        //return Array.from(filteredSet, i => items[i]);
+        return Array.from( filteredSet, i => items[i]).filter( (item): item is DataType => item !== undefined);
     }
 
     protected addSearchBar( placeholder: string )
@@ -256,17 +259,17 @@ export abstract class MyListView<DataType> extends ItemView
         }, this.searchQueryDebounce);
     }
 
-    protected openSortMenu()
+    protected openSortMenu( evt: MouseEvent )
     {
 
     }
 
     private openFilterSourceMenu( evt: MouseEvent )
     {
-        const m = new Menu(this.plugin);
+        const m = new Menu();
         for( const source of this.sourceArray )
         {
-            m.addItem((item: MenuItem) => {
+            m.addItem((item) => {
                 item.setTitle(source)
                     .setChecked?.(this.sourceFilter.includes( source ))
                     .onClick(() => {

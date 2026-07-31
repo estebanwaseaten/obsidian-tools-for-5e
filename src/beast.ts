@@ -1,5 +1,23 @@
+
 import { App, FuzzySuggestModal, setIcon } from "obsidian";
 import { rollD20, rollDY, rollXDY, rollDiceFormula } from "./utils/rollUtils"
+import { ToolsFor5eSettings } from "./settings";
+import ToolsFor5e from "./main";
+
+export interface TraitEntry {
+    name: string;
+    entries: any[];
+}
+
+export interface ActionEntry {
+    name: string;
+    entries: any[];
+}
+
+export interface ReactionEntry {
+    name: string;
+    entries: any[];
+}
 
 export interface MyBeast
 {
@@ -19,9 +37,25 @@ export interface MyBeast
 
     ac?: string | number;
 
+    trait?: any[];
+
+    level?: string;
+
+    skill?: any;
+    save?: any;
+    immune?: any[];
+    senses?: any[];
+    passive?: string;
+    languages?: any[];
+    cr?: any;
+    speend?: any;
+    size?: string;
+
     hasFluff?: boolean;
     fluffText?: string | null;
     fluffImage?: string | null;
+
+    [key: string]: any;     // all fields provided
 }
 
 const alignmentMap: Record<string, string> = {
@@ -55,7 +89,7 @@ interface StatblockOverrides
 //helper functions
 export class BeastUtils
 {
-    private static settings;
+    private static settings: ToolsFor5eSettings;
 
 
     static initialize(settings: any): void
@@ -75,12 +109,12 @@ export class BeastUtils
             const column = table.createEl( "div", { cls: "tools-for-5e-table-column" } );
             for( let y = 0; y < rows; y++ )
             {
-                const segment = column.createEl( "div", { cls: "tools-for-5e-table-segment", text: String( matrix[y][x] ) } );
+                const segment = column.createEl( "div", { cls: "tools-for-5e-table-segment", text: String( matrix[y]?.[x] ?? "" ) } );
             }
         }
     }
 
-    static createStatBlock( container: HTMLElement, monster: MyBeast, plugin: My5ePlugin, overrides: StatblockOverrides = {} ) : void
+    static createStatBlock( container: HTMLElement, monster: MyBeast, plugin: ToolsFor5e, overrides: StatblockOverrides = {} ) : void
     {
 
         //console.log( monster );
@@ -90,7 +124,7 @@ export class BeastUtils
         const hp        = overrides.hp        ?? BeastUtils.getHP( monster, false ).value;
         const ac        = overrides.ac        ?? BeastUtils.getArmorClass( monster );
         const acNumStr  = ac.split(" ")[0];
-        const iniBon    = overrides.initiativeBonus ?? BeastUtils.getIniBonus( monster );
+        const iniBon    = overrides.iniBonus ?? BeastUtils.getIniBonus( monster );
         const conditions = overrides.conditions ?? [];
 
         const speed = BeastUtils.getSpeed( monster ).text;
@@ -128,7 +162,7 @@ export class BeastUtils
         const attrGrid = attributesContainer.createEl( "div", { cls: "dnd-attributes-grid" } );
         const addAttr = ( label: string, key: string ) =>
         {
-            const score = monster?.[key] ?? 10;
+            const score = (monster?.[key as keyof MyBeast] as number) ?? 10;
             const mod = Math.floor((score - 10) / 2);
 
             const card = attrGrid.createEl("div", { cls: "dnd-attribute-card" });
@@ -154,7 +188,7 @@ export class BeastUtils
 
 
         // traits
-        const traits = [...(monster.trait ?? [])];
+        const traits: TraitEntry[] = [...(monster.trait ?? []) as any[]];
         traits.push(...BeastUtils.getFromSpellcasting("trait", monster ) );
         if( traits.length > 0 )
         {
@@ -197,7 +231,7 @@ export class BeastUtils
             BeastUtils.createLegendaryActions( sectionLegendaryActions, legendaryActions );
         }
 
-        const srcData = plugin.getBase64ImageAsSrcData( monster?.fluffImage )
+        const srcData = plugin.getBase64ImageAsSrcData( monster?.fluffImage ?? "" )
         if( srcData )
         {
             const sectionImage = body.createEl( "div", { cls: "tools-for-5e-statblock-segment"} );
@@ -264,12 +298,13 @@ export class BeastUtils
 
 //    {@variantrule Emanation [Area of Effect]|XPHB|Emanation}
 //"The balor explodes when it dies. {@actSave dex} {@dc 20}, each creature in a 30-foot {@variantrule Emanation [Area of Effect]|XPHB|Emanation} originating from the balor. {@actSaveFail} 31 ({@damage 9d6}) Fire damage plus 31 ({@damage 9d6}) Force damage. {@actSaveSuccess} Half damage. {@actSaveSuccessOrFail} If the balor dies outside the Abyss, it gains a new body instantly, reviving with all its {@variantrule Hit Points|XPHB} somewhere in the Abyss."
-    static getFromSpellcasting( kind: string, monster: MyBeast ): []
+    static getFromSpellcasting( kind: string, monster: MyBeast ): TraitEntry[]
     {
         if( !monster.spellcasting )
             return [];
 
-        let returnArray = [];
+        let returnArray: any[] = [];
+
         for( const sc of monster.spellcasting )
         {
             if( sc.displayAs === kind )
@@ -435,7 +470,7 @@ export class BeastUtils
                 if (useMeters)
                 {
                     // Regulärer Ausdruck sucht nach Zahlen gefolgt von "ft." (z.B. "60 ft.")
-                    return sense.replace( /(\d+)\s*ft\./gi, (match, feetStr) => {
+                    return sense.replace( /(\d+)\s*ft\./gi, (match: string, feetStr: string) => {
                         const feet = parseInt(feetStr, 10);
                         const meters = (feet / 5) * 1.5;
                         return `${Number(meters.toFixed(1))}m`;
@@ -550,7 +585,7 @@ export class BeastUtils
 
     static getIniBonus( monster: MyBeast )
     {
-        const dexmod = Math.floor( ((monster?.dex ?? 10) - 10) / 2 );
+        const dexmod = Math.floor( ( Number(monster?.dex ?? 10) - 10) / 2 );
         const proficiency = BeastUtils.getProficiency( monster );
         const profMultiplier = monster?.initiative?.proficiency ?? 0;
         const initiativeProficiencyBonus = profMultiplier * proficiency;
@@ -608,10 +643,10 @@ export class BeastUtils
         if( typeof acField === 'number' || typeof acField === 'string' )
             return String( acField );
 
-        if( Array.isArray(acField) && acField.length > 0 )
+        if( Array.isArray(acField) && (acField as any).length > 0 )
         {
             const first = acField[0];
-            return typeof first === 'object' ? String( first.ac ?? "10" ) : String( first );
+            return typeof first === 'object' ? String( (first as any).ac ?? "10" ) : String( first );
         }
         return "10";
     }
@@ -674,13 +709,13 @@ export class BeastUtils
             //case swarm:
             if( monster.type.swarmSize )
             {
-                const swarmSizeWord = monster.type.swarmSize.map( code =>
+                const swarmSizeWord = monster.type.swarmSize.map( (code :string) =>
                 {
                     if( typeof code !== "string" ) return "";
                     const upperCode = code.toUpperCase();
                     return sizeMap[ upperCode ] || code.toLowerCase();
                 })
-                .filter(text => text !== "")
+                .filter( (text: string) => text !== "")
                 .join("/");
 
                 return `swarm of ${swarmSizeWord} ${mainType}s`;
@@ -702,9 +737,9 @@ export class BeastUtils
 
 
 
-export class BeastSuggestionModal extends FuzzySuggestModal<MyItem>
+export class BeastSuggestionModal extends FuzzySuggestModal<MyBeast>
 {
-    constructor( plugin: App, private items: MyBeast[], private onPick: (i: MyBeast )=> void)
+    constructor( plugin: App, private beast: MyBeast[], private onPick: (i: MyBeast )=> void)
     {
         super(plugin);
         this.setPlaceholder("Pick a beast...")

@@ -1,3 +1,4 @@
+import ToolsFor5e from "../main";
 import { Notice, TFile } from "obsidian";
 
 export async function addItemToEncounter( plugin: ToolsFor5e, data: { ref: string, kind: string, name?: string } )

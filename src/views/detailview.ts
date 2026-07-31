@@ -1,6 +1,8 @@
-import { ItemView, Notice } from "obsidian";
+import { ItemView, Notice, WorkspaceLeaf } from "obsidian";
 
-import { MyBeast, BeastUtils, StatblockOverrides } from "../beast";
+import type ToolsFor5e from "../main";
+
+import { MyBeast, BeastUtils } from "../beast";
 import { MySpell } from "../spell";
 import { MyItem } from "../item";
 import { MyCharacter, MyNPC } from "../character";
@@ -28,11 +30,11 @@ export class MyDetailView extends ItemView
     getDisplayText() { return "5e Detail"; }
     getIcon()        { return "book-open"; }
 
-    showItem(item: DetailData)
+/*    showItem( current: DetailData )
     {
-        this.current = item;
+        this.currentData = current;
         this.render();
-    }
+    }*/
 
     async onOpen()
     {
@@ -177,17 +179,11 @@ export class MyDetailView extends ItemView
                 this.createInlineStat( itemContainer, "Ammo type", `${item.ammoType}` );
 
         }
-
-
-
-
-
-
     }
 
     private renderCharacter( el: HTMLElement, character: MyCharacter )
     {
-        el.createEl("h3", { text: item.name });
+        el.createEl("h3", { text: character.name });
 
         // ...
         console.log( character );
@@ -196,7 +192,7 @@ export class MyDetailView extends ItemView
 
     private renderNPC( el: HTMLElement, npc: MyNPC )
     {
-        el.createEl("h3", { text: item.name });
+        el.createEl("h3", { text: npc.name });
         // ...
         console.log( npc );
 

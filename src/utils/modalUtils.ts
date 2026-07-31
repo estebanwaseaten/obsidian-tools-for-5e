@@ -62,7 +62,7 @@ export class TextInputModal extends Modal
     private titleText: string;
     private labelText: string;
 
-    constructor( app: App, titleText: string, labelText: string, onSubmit: (amount: number) => void, defaultValue?: string )
+    constructor( app: App, titleText: string, labelText: string, onSubmit: (value: string) => void, defaultValue?: string )
     {
         super( app );
         this.titleText = titleText;

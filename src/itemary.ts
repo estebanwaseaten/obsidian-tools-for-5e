@@ -91,7 +91,7 @@ export class ItemCompendium extends Compendium<ItemRaw, MyItem>
             }
             const baseItemFile = await readJSONFile<ItemaryFile>( baseItemsPath );   //already returns as parsed json file
 
-            for( const item of baseItemFile.baseitem )
+            for( const item of baseItemFile.baseitem ?? [] )
             {
                 const newItem = this.mapFromRaw( item ); //translate from json structure to my own
 
@@ -113,7 +113,7 @@ export class ItemCompendium extends Compendium<ItemRaw, MyItem>
             const itemFile = await readJSONFile<ItemaryFile>( itemsPath );   //already returns as parsed json file
             //console.log( itemFile );
 
-            for( const item of itemFile.item )
+            for( const item of itemFile.item ?? [])
             {
                 //console.log( "adding: " + item.source + ": " + item.name );
                 const newItem = this.mapFromRaw( item ); //translate from json structure to my own
@@ -135,13 +135,11 @@ export class ItemCompendium extends Compendium<ItemRaw, MyItem>
     }
 
     //convert json data to internal MyBeast  format
-    private mapFromRaw( raw: ItemRaw ): MyItem
+    public mapFromRaw( raw: ItemRaw ): MyItem
     {
         //console.log(raw.name + ": " + raw.rarity );
         return {
             ...raw,
-
-
 
            // map other fields you need
        };

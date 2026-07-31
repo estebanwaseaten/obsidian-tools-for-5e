@@ -64,13 +64,13 @@ export class MyItemView extends MyListView<MyItem>
           //this.rarityArray = [];  //is fixed
 
           this.allItems.forEach(
-              (item, arrInd) =>
+              ( item, arrInd ) =>
               {
-                  let raritySet = this.rarityIndex.get( item.rarity );    //do we have this mapping yet?
+                  let raritySet = this.rarityIndex.get( item.rarity ?? "Common" );    //do we have this mapping yet?
                   if( !raritySet )                                        //if not we have to make it
                   {
                       raritySet = new Set<number>();                      //make an empty set
-                      this.rarityIndex.set( item.rarity, raritySet );          //add this set to the map via .set() method *confusing* which is how you add things to a map.
+                      this.rarityIndex.set( item.rarity ?? "Common", raritySet );          //add this set to the map via .set() method *confusing* which is how you add things to a map.
                       //this.rarityArray.push( item.rarity );
                   }
                   raritySet.add( arrInd ); //add index of the current item to this set.
@@ -87,7 +87,7 @@ export class MyItemView extends MyListView<MyItem>
 
     private openFilterRarityMenu( evt: MouseEvent )
     {
-        const m = new Menu( this.plugin );
+        const m = new Menu();
         for( const rarity of this.rarityArray )
         {
             m.addItem( (item: MenuItem) => {
@@ -114,14 +114,15 @@ export class MyItemView extends MyListView<MyItem>
                 rarity => {
                     if( this.rarityIndex.has( rarity ) )
                     {
-                        raritySet = raritySet.union( this.rarityIndex.get( rarity )! );
+                        //raritySet = raritySet.union( this.rarityIndex.get( rarity )! );
+                        raritySet = new Set( [...raritySet, ...this.rarityIndex.get(rarity) ?? []]);
                     }
                 }
             );
-            filteredSet = filteredSet.intersection( raritySet );
+            //filteredSet = filteredSet.intersection( raritySet );
+            filteredSet = new  Set([...filteredSet].filter( x => raritySet.has(x)));
         }
 
-        return Array.from( filteredSet, i => items[i] );
+        return Array.from( filteredSet, i => items[i] ).filter( (item): item is MyItem => !!item );
     }
-
 }

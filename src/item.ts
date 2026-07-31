@@ -11,20 +11,36 @@ export interface MyItem
     name: string;
     source: string;
 
-    markdownlink: string;
-    imagePath: string;
-    detail: string;
-    infotext: string;
-    cost: string | number;
-    weight: string | number;
-    damage: string | number;
-    damage2: string | number;
-    ac: string | number;
-    range: string | number;
+    markdownlink?: string;
+    imagePath?: string;
+    detail?: string;
+    infotext?: string;
+    cost?: string | number;
+    weight?: string | number;
+    damage?: string | number;
+    damage2?: string | number;
+    ac?: string | number;
+    range?: string | number;
     rarity?: string;
     rarityInt?: number;
-    type: string;
-    variants: MyVariant[];
+    type?: string;
+    variants?: MyVariant[];
+
+    value?: number;
+    valueRarity?: number;
+
+    dmg1?: number | string;
+    dmgType?: string;
+    ammoType?: string;
+
+    entries?: any[];
+
+    weapon?: boolean;
+    firearm?: boolean;
+
+    weaponCategory?: string;
+    mastery?: string;
+
 
     //from fluff
     fluffImage?: string | "";

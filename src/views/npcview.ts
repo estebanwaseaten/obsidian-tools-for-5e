@@ -1,8 +1,10 @@
-import { EventRef, setIcon, Notice, Modal, TFile } from "obsidian";
+import { EventRef, setIcon, WorkspaceLeaf, Notice, Modal, TFile } from "obsidian";
+
+import ToolsFor5e from "../main";
 
 import { addItemToEncounter } from "../utils/encounterUtils";
 
-import { CharacterModal, ConfirmModal } from "../modals";
+import { ConfirmModal } from "../modals";
 import { MyListView } from "./listview"
 import { MyNPC } from "../character"
 
@@ -17,7 +19,7 @@ export class MyNPCView extends MyListView<MyNPC>
     constructor( leaf: WorkspaceLeaf, plugin: ToolsFor5e )
     {
         // daten müssen hier erst noch geladen werden
-        super(leaf, plugin, [], ["Local"]);
+        super(leaf, plugin, [] );
         this.loadCharacters();
 
         this.registerEvent(

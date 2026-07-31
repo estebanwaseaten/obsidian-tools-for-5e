@@ -1,7 +1,7 @@
-import {App, Editor, MarkdownView, Modal, Notice, Plugin, normalizePath, TFile, TFolder} from 'obsidian';
+import {App, MarkdownView, Modal, Notice, Plugin, TFile, WorkspaceLeaf, View, requestUrl } from 'obsidian';
 import {DEFAULT_SETTINGS, ToolsFor5eSettings, ToolsFor5eSettingsTab} from "./settings";
 
-import { pathExists, verify5eToolsPath, verify5eImgPath } from "./utils/fileUtils";
+import { pathExists, verify5eToolsPath } from "./utils/fileUtils";
 
 import { toolsPostProcessor } from './markdown';
 
@@ -25,15 +25,15 @@ import { ENCOUNTER_VIEW, MyEncounterView } from "./views/encounterview";
 
 import { DETAIL_VIEW, MyDetailView, DetailData } from "./views/detailview";
 
-import { PLAYER_INFO_VIEW, MyPlayerInfoView } from "./views/playerinfoview";
+import { PLAYER_INFO_VIEW, MyPlayerInfoView, PlayerInfoState } from "./views/playerinfoview";
 
 // Remember to rename these classes and interfaces!
 
 export default class ToolsFor5e extends Plugin {
 	settings: ToolsFor5eSettings;
 
-    private absoluteDataPath!: string = "";
-    private absoluteImgPath!: string = "";
+    public absoluteDataPath: string = "";
+    public absoluteImgPath: string = "";
 
 	public myItemary!: ItemCompendium;
 	public mySpellary!: SpellCompendium;
@@ -68,9 +68,9 @@ export default class ToolsFor5e extends Plugin {
         await this.registerSources( this.myItemary.getSources() );
 
         // register views AFTER Compendii are built!
-        this.registerView( ITEM_VIEW, (leaf) => new MyItemView( leaf, this, this.myItemary.getData(), this.myItemary.getSources() ) );
-        this.registerView( SPELL_VIEW, (leaf) => new MySpellView( leaf, this, this.mySpellary.getData(), this.mySpellary.getSources() ) );
-        this.registerView( BEAST_VIEW, (leaf) => new MyBeastView( leaf, this, this.myBestiary.getData(), this.myBestiary.getSources() ) );
+        this.registerView( ITEM_VIEW, (leaf) => new MyItemView( leaf, this, this.myItemary.getData() ) );   //, this.myItemary.getSources()
+        this.registerView( SPELL_VIEW, (leaf) => new MySpellView( leaf, this, this.mySpellary.getData() ) );
+        this.registerView( BEAST_VIEW, (leaf) => new MyBeastView( leaf, this, this.myBestiary.getData() ) );
 
         this.registerView( CHARACTER_VIEW, (leaf) => new MyCharacterView( leaf, this ) );   //list view for characters
         this.registerView( NPC_VIEW, (leaf) => new MyNPCView(leaf, this) );                 //list view for npcs
@@ -104,7 +104,7 @@ export default class ToolsFor5e extends Plugin {
 
         this.addRibbonIcon( "monitor", "Open player display window", async () =>
         {
-            await this.openPlayerWindow( null );
+            await this.openPlayerWindow();
         });
 
         this.addRibbonIcon( "eraser", "Clear player display", async () =>
@@ -188,7 +188,7 @@ export default class ToolsFor5e extends Plugin {
 
 
 
-    async registerSources( sources: Set<string> )
+    async registerSources( sources: Iterable<string>  )     //includes Set and Array
     {
         for (const source of sources)
         {
@@ -246,7 +246,7 @@ export default class ToolsFor5e extends Plugin {
         this.app.workspace.revealLeaf(detailLeaf);
     }
 
-    async openEncounterView( file )
+    async openEncounterView( file: TFile )
     {
         //console.log( "activateEncounterView " );
         const { workspace } = this.app;
@@ -269,14 +269,14 @@ export default class ToolsFor5e extends Plugin {
         }
     }
 
-	async openPane( viewType: string, instance: MyItemView | MySpellView | MyBeastView )		//( ITEM_VIEW, MyItemView )
+	async openPane( viewType: string, viewClass: new (...args: any[]) => View )		//( ITEM_VIEW, MyItemView )
 	{
 		const { workspace } = this.app;
 
 		let leaf: WorkspaceLeaf | null = null;
 		let presentLeaf = workspace.getLeavesOfType( viewType ).first();
 
-		if( presentLeaf && presentLeaf.view instanceof instance )
+		if( presentLeaf && presentLeaf.view instanceof viewClass )
 		{
 			console.debug( "Pane of type " + viewType + " already there." );
 			leaf = presentLeaf;
@@ -284,30 +284,68 @@ export default class ToolsFor5e extends Plugin {
 		else
 		{
 			leaf = workspace.getRightLeaf(false);
-			await leaf.setViewState({ type: viewType, active: true });
+            await leaf?.setViewState({ type: viewType, active: true });
 		}
-		await workspace.revealLeaf( leaf );
-	}
+        if( leaf )
+        {
+            await workspace.revealLeaf( leaf );
+        }
+    }
 
-    public getBase64ImageAsSrcData( relImgPath: string ): string
+    public getBase64ImageAsSrcData( relImgPath: string ): string | null
     {
-         if( !relImgPath )
-             return null;
+        if( !relImgPath )
+            return null;
+
+        if( this.settings.useLiveImages )
+        {
+            const webRelPath = relImgPath.replace(/\\/g, '/');
+            const baseUrl = this.settings.liveImageBaseURL.endsWith('/') ? this.settings.liveImageBaseURL : this.settings.liveImageBaseURL + '/';
+            const urlParam = this.settings.liveImageURLParam;
+            const sanitizedPath = webRelPath.replace(/ /g, '%20');
+
+            return `${baseUrl}${sanitizedPath}${urlParam}`;   //?raw=true
+        }
 
         const cleanFluffPath = relImgPath.replace(/\//g, path.sep);
         const absoluteImgPath = path.join( this.absoluteImgPath, cleanFluffPath );
 
         if( !fs.existsSync(absoluteImgPath) )
         {
-           console.warn("could not find image path: " + absoluteImgPath);
-           return null;
-       }
+            console.warn("could not find image path: " + absoluteImgPath);
+            return null;
+        }
 
-       const imageBuffer = fs.readFileSync( absoluteImgPath );
-       const base64Image = imageBuffer.toString( 'base64' );
+        const imageBuffer = fs.readFileSync( absoluteImgPath );
+        const base64Image = imageBuffer.toString( 'base64' );
 
-       return `data:image/webp;base64,${base64Image}`;
+        return `data:image/webp;base64,${base64Image}`;
     }
+
+    /*
+    old version:
+    public getBase64ImageAsSrcData( relImgPath: string ): string | null
+    {
+        if( !relImgPath )
+            return null;
+
+        const cleanFluffPath = relImgPath.replace(/\//g, path.sep);
+        const absoluteImgPath = path.join( this.absoluteImgPath, cleanFluffPath );
+
+        if( !fs.existsSync(absoluteImgPath) )
+        {
+            console.warn("could not find image path: " + absoluteImgPath);
+            return null;
+        }
+
+        const imageBuffer = fs.readFileSync( absoluteImgPath );
+        const base64Image = imageBuffer.toString( 'base64' );
+
+        return `data:image/webp;base64,${base64Image}`;
+    }
+    */
+
+
 
     public getImgPath()
     {
@@ -325,6 +363,7 @@ export default class ToolsFor5e extends Plugin {
         // generate external absolute paths
         if( this.settings.fiveEtoolsExternalDir )
         {
+            console.log( "ext dir: " + this.settings.fiveEtoolsExternalDir );
             const vaultRoot = (this.app.vault.adapter as any).basePath;
 
             this.absoluteDataPath = path.resolve( vaultRoot, path.join( this.settings.fiveEtoolsExternalDir, 'data/' ) );
@@ -337,6 +376,7 @@ export default class ToolsFor5e extends Plugin {
             }
             else
             {
+                console.log( "no absolute data path" );
                 this.absoluteDataPath = '';
             }
 
@@ -347,6 +387,7 @@ export default class ToolsFor5e extends Plugin {
             }
             else
             {
+                console.log( "no absolute img path" );
                 this.absoluteImgPath = '';
             }
         }
@@ -361,14 +402,14 @@ export default class ToolsFor5e extends Plugin {
     {
         const existingLeaves = this.app.workspace.getLeavesOfType( PLAYER_INFO_VIEW );
 
-        if( existingLeaves.length > 0 )
+        if( existingLeaves && existingLeaves.length > 0 )
         {
-            this.app.workspace.revealLeaf( existingLeaves[0] );
+            this.app.workspace.revealLeaf( existingLeaves[0]! );
             return;
         }
 
         const leaf = this.app.workspace.openPopoutLeaf();
-        await leaf.setViewState( { type: PLAYER_INFO_VIEW, active: true, state: null } );
+        await leaf.setViewState( { type: PLAYER_INFO_VIEW, active: true, state: undefined } );
     }
 
     //only if open
@@ -376,9 +417,9 @@ export default class ToolsFor5e extends Plugin {
     {
         const existingLeaves =  this.app.workspace.getLeavesOfType( PLAYER_INFO_VIEW );
 
-        if( existingLeaves.length > 0 )
+        if( existingLeaves && existingLeaves.length > 0 )
         {
-            const view = existingLeaves[0].view as MyPlayerInfoView;
+            const view = existingLeaves[0]!.view as MyPlayerInfoView;
             await view.setState( state, { history: false } );
             return;
         }

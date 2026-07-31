@@ -1,6 +1,7 @@
 // utils/fileUtils.ts
 import * as fs from "fs";
 import * as path from "path";
+import * as os from 'os';
 
 export async function pathExists( p: string ): Promise<boolean>
 {
@@ -11,7 +12,13 @@ export async function pathExists( p: string ): Promise<boolean>
 
 export async function verify5eToolsPath( toolsPath: string ): Promise<boolean>
 {
-    const booksPath = path.join( toolsPath, "data/books.json" );
+    let resolvedBase = toolsPath;
+    if( toolsPath.startsWith( '~') )    //resolve home dir
+    {
+        resolvedBase = path.join( os.homedir(), toolsPath.slice(1) );
+    }
+
+    const booksPath = path.resolve( resolvedBase, "data/books.json" );
     console.log( "verify5eToolsPath: " + booksPath );
     return fs.promises.access( booksPath )
         .then(() => true)
@@ -42,7 +49,10 @@ export async function filterPathsRemove( filePaths: string[], starts?: string, e
 {
     if( starts && ends )
     {
-        return filePaths.filter( f => !path.basename(f).startsWith( starts ).endsWith( ends ) );
+        return filePaths.filter( f => {
+            const base = path.basename(f);
+            return !(base.startsWith(starts) && base.endsWith(ends));
+        });
     }
     else if ( starts )
     {
@@ -62,7 +72,10 @@ export async function filterPathsInclude( filePaths: string[], starts?: string, 
 {
     if( starts && ends )
     {
-        return filePaths.filter( f => path.basename(f).startsWith( starts ).endsWith( ends ) );
+        return filePaths.filter( f => {
+            const base = path.basename(f);
+            return (base.startsWith(starts) && base.endsWith(ends));
+        });
     }
     else if ( starts )
     {

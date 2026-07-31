@@ -1,3 +1,4 @@
+
 import { EventRef, ItemView, WorkspaceLeaf, SearchComponent, Menu, prepareFuzzySearch, setIcon } from "obsidian";
 import type { MenuItem } from "obsidian";
 import type ToolsFor5e from "../main";     //only for default export
@@ -20,6 +21,9 @@ export class MySpellView extends MyListView<MySpell>
     private classArray: string[] = [];
     private classIndex = new Map<string, Set<number>>();
     private classFilter: string[] = [];
+
+    protected filterLevelEl!: HTMLElement;
+    protected filterClassEl!: HTMLElement;
 
     getDisplayText(): string { return "D&D Spells"; }
     getIcon(): string { return "scroll"; }
@@ -82,12 +86,12 @@ export class MySpellView extends MyListView<MySpell>
                 if( spell.classVariantNames ) {    spellClasses.concat(Array.from(spell.classVariantNames  )); }
                 for( const spellClass of spellClasses )
                 {
-                    set = this.classIndex.get( spellClass );
+                    set = this.classIndex.get( spellClass as string );
                     if( !set )
                     {
                         set = new Set<number>();
-                        this.classIndex.set( spellClass, set );
-                        this.classArray.push( spellClass );
+                        this.classIndex.set( spellClass as string , set );
+                        this.classArray.push( spellClass  as string );
                     }
                     set.add( i );
                 }
@@ -118,7 +122,7 @@ export class MySpellView extends MyListView<MySpell>
     //private levelFilter: number[] = [];
     private openFilterLevelMenu( evt: MouseEvent )
     {
-        const m = new Menu( this.plugin );
+        const m = new Menu();
         this.levelArray.forEach( ( spellLevel: string, index: number ) =>   //loop through all possible spell levels
         {
             //console.log(spellLevel + ": " + index);
@@ -138,7 +142,7 @@ export class MySpellView extends MyListView<MySpell>
 
     private openFilterClassMenu( evt: MouseEvent )
     {
-        const m = new Menu( this.plugin );
+        const m = new Menu();
         for( const spellClass of this.classArray )
         {
             m.addItem((item: MenuItem) => {
@@ -155,7 +159,7 @@ export class MySpellView extends MyListView<MySpell>
     }
 
     //custom filtering
-    applyCustomFilters(items: MyBeast[]): MyBeast[]   //none so far
+    applyCustomFilters(items: MySpell[]): MySpell[]   //none so far
     {
         let filteredSet = new Set<number>( items.keys() );
         if( this.levelFilter.length > 0 )
@@ -165,11 +169,14 @@ export class MySpellView extends MyListView<MySpell>
                 spellLevel => {
                     if( this.levelIndex.has( spellLevel ) )
                     {
-                        levelSet = levelSet.union( this.levelIndex.get(spellLevel)! );
+                        //levelSet = levelSet.union( this.levelIndex.get(spellLevel)! );
+                        levelSet = new Set( [...levelSet, ...this.levelIndex.get(spellLevel) ?? []]);
                     }
                 }
             );
-            filteredSet = filteredSet.intersection( levelSet );
+            //filteredSet = filteredSet.intersection( levelSet );
+            filteredSet = new  Set([...filteredSet].filter( x => levelSet.has(x)));
+
         }
 
 
@@ -181,13 +188,16 @@ export class MySpellView extends MyListView<MySpell>
                 spellClass => {
                     if( this.classIndex.has(spellClass) )
                     {
-                        classSet = classSet.union( this.classIndex.get(spellClass)! );
+                        //classSet = classSet.union( this.classIndex.get(spellClass)! );
+                        classSet = new Set( [...classSet, ...this.classIndex.get(spellClass) ?? []]);
                     }
                 }
             );
-            filteredSet = filteredSet.intersection( classSet );
+            //filteredSet = filteredSet.intersection( classSet );
+            filteredSet = new  Set([...filteredSet].filter( x => classSet.has(x)));
+
         }
 
-        return Array.from( filteredSet, i => items[i] );
+        return Array.from( filteredSet, i => items[i] ).filter(Boolean) as MySpell[];
     }
 }

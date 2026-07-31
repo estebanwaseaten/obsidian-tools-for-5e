@@ -1,5 +1,6 @@
+
 import { Compendium } from './compendium';
-import { MyBeast, MyBeastFluff } from "./beast";
+import { MyBeast } from "./beast";
 
 import { pathExists, verify5eToolsPath, joinPath, listDirectoryPaths, readJSONFile, filterPathsRemove, filterPathsInclude } from "./utils/fileUtils";
 
@@ -134,7 +135,7 @@ export class BeastCompendium extends Compendium<MonsterRaw, MyBeast>
                         if( existing )
                         {
                             existing.fluffImage = monsterFluff.images?.[0]?.href?.path
-                                ?? monsterFluff._copy?._mod?.images?.items?.[0]?.href?.path
+                                ?? (monsterFluff as any)._copy?._mod?.images?.items?.[0]?.href?.path
                                 ?? "";
                             existing.fluffText = this.extractFluffText( monsterFluff.entries );
                         }
@@ -154,7 +155,7 @@ export class BeastCompendium extends Compendium<MonsterRaw, MyBeast>
                             if( existing.hasFluffImages && !existing.fluffImage )   //has no image yet, but should have
                             {
                                 //console.log( "need to copy fluff: " + existing.name + existing + " copy:" + monsterFluff._copy.name)
-                                const parentFluff = fluffCache.get( monsterFluff._copy.name );
+                                const parentFluff = fluffCache.get( (monsterFluff as any)._copy.name );
                                 existing.fluffImage =  parentFluff.images?.[0]?.href?.path ?? "";
                             }
                         }
@@ -188,7 +189,7 @@ export class BeastCompendium extends Compendium<MonsterRaw, MyBeast>
     }
 
     //convert json data to internal MyBeast  format
-    private mapFromRaw( m: MonsterRaw ): MyBeast
+    public mapFromRaw( m: MonsterRaw ): MyBeast
     {
         //console.log("Mapping Monster:", m.name);
         const  beast: MyBeast = {

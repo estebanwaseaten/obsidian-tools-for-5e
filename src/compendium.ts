@@ -2,7 +2,7 @@ import type { App } from 'obsidian';
 import { Events } from 'obsidian';
 import type ToolsFor5e from './main';
 
-export class Compendium<DataRaw, DataInternal> extends Events
+export abstract  class Compendium<DataRaw, DataInternal> extends Events
 {
     protected plugin: ToolsFor5e;
     protected data: Map<string, Map<string, DataInternal>> = new Map();

@@ -1,12 +1,12 @@
-import { ItemView, TFile, setIcon, Modal, convertFileSrc  } from "obsidian";
+import { ItemView, TFile, setIcon, Modal, Notice, WorkspaceLeaf } from "obsidian";
 import type ToolsFor5e from "../main";     //only for default export
 
 import { rollD20, rollDY, rollXDY } from "../utils/rollUtils"
-import { parseArmorClass } from "../utils/encounterUtils"
+//import { parseArmorClass } from "../utils/encounterUtils"
 import { ConditionsModal, TextInputModal, NumInputModal, ConfirmModal } from "../utils/modalUtils"
 
 import { CharacterYAML } from "../character"
-import { MyBeast, BeastUtils, StatblockOverrides } from "../beast"
+import { MyBeast, BeastUtils } from "../beast"
 
 
 
@@ -60,6 +60,7 @@ export interface EncounterParticipantYAML {
 
     // 2. Optionale Daten (existieren erst, wenn das Encounter läuft/gespeichert wurde)
     id?: string;                             // Eindeutige ID zur Unterscheidung gleicher Monster
+    name?: string;
 
     // Die Live-Zustandsdaten (falls das Encounter ein geladener Spielstand ist)
     participantData?: encounterParticipantData;
@@ -104,8 +105,11 @@ class EncounterParticipant       //data for live encounter
         if( this.kind === 'monster')
         {
             this.icon = "skull";
-            const [source, monsterName] = this.ref.split(':');
-            temporaryFixedData = plugin.myBestiary.getDataItem( monsterName, source );
+            const parts = this.ref.split(':');
+            const source = parts[0] ?? "";
+            const monsterName = parts[1] ?? "";
+
+            temporaryFixedData = plugin.myBestiary.getDataItem( monsterName, source ) ?? null;
         }
         else if ( this.kind === 'character' || this.kind === 'npc' )
         {
@@ -210,7 +214,7 @@ class EncounterParticipant       //data for live encounter
         if( beast )
         {
             ac = BeastUtils.getArmorClass( beast );
-            hp = BeastUtils.getHP( beast, this.plugin.settings.rollHealthpoints );
+            hp = BeastUtils.getHP( beast, this.plugin.settings.rollHealthpoints ).value;
             iniBonus = BeastUtils.getIniBonus( beast );
             console.log( "iniBonus: " + iniBonus );
             console.log( "ac: " + ac );
@@ -224,8 +228,8 @@ class EncounterParticipant       //data for live encounter
             conditions: [],
             attitude: "hostile",
             ac: ac,
-            hpMax: hp.value,          //this would overwrite a real 0
-            hpCurrent: hp.value,
+            hpMax: hp,          //this would overwrite a real 0
+            hpCurrent: hp,
             iniBonus: iniBonus,
             showImage: true,
         }
@@ -263,7 +267,7 @@ class EncounterParticipant       //data for live encounter
     {
         let title: string;
         let label: string;
-        let defaultValue: string = "";
+        let defaultValue = 0;
 
         switch( type )
         {
@@ -280,7 +284,7 @@ class EncounterParticipant       //data for live encounter
             case "initiative":
                 title =  `Set initiative for ${this.participantData.name}`;
                 label = "Initiative:";
-                defaultValue = this.participantData.initiative;
+                defaultValue = this.participantData.initiative ?? 0;
                 break;
             case "name":
                 title = `Change Name:`;
@@ -468,10 +472,16 @@ class EncounterParticipant       //data for live encounter
 
         if( this.kind === "monster" )
         {
+            if( !this.fixedData )
+            {
+                 root.createEl("p", { text: "Failed loading stat block." });
+                 return;
+            }
+
             const hp = this.getHPObject();
 
             //console.log( hp );
-            BeastUtils.createStatBlock( root, this.fixedData, this.plugin,
+            BeastUtils.createStatBlock( root, (this.fixedData as MyBeast), this.plugin,
                 {   hp: String( hp.hpCurrentValid ? hp.hpCurrent : "?" ),
                     name: this.participantData.name,
                     conditions: "",
@@ -481,9 +491,9 @@ class EncounterParticipant       //data for live encounter
         else
         {
             const header = root.createEl( "div", { cls: "tools-for-5e-encounter-detail-header" });
-            const level = this.fixedData?.level ?? "?";
-            const className = this.fixedData?.["class"] || "class unknown";
-            const race = this.fixedData?.race || "";
+            const level = (this.fixedData as any)?.level ?? "?";
+            const className = (this.fixedData as any)?.["class"] || "class unknown";
+            const race = (this.fixedData as any)?.race || "";
             const temp = `- level ${level} ${className} (${race})`.toLowerCase();
             header.createEl( "div", { cls: "title", text: this.participantData.name + " " + temp} );
 
@@ -500,7 +510,7 @@ class EncounterParticipant       //data for live encounter
 }
 
 // main encounter view - responsible for loading the encounter!
-export abstract class MyEncounterView extends ItemView
+export class MyEncounterView extends ItemView
 {
     //global encounter data
     private encounter_file: TFile | null = null;    //encounter file, important for saving!
@@ -542,7 +552,7 @@ export abstract class MyEncounterView extends ItemView
                 console.log("no encounter!")
                 return;
             }
-            this.encounter_name = fm?.name ?? this.encounter_file.basename;
+            this.encounter_name = fm?.name ?? file.basename;
             this.updateTabTitle();
             this.encounter_pos = fm?.current_pos ?? 0;
             this.encounter_round = fm?.current_round ?? 0;
@@ -657,7 +667,7 @@ export abstract class MyEncounterView extends ItemView
         const container = root.createEl( "div", { cls: "tools-for-5e-encounter-container" } );
 
         const header = container.createEl("div", { cls: "tools-for-5e-encounter-header" } );
-        header.createEl( "span", { text: this.name, cls: "tools-for-5e-encounter-header-title"} )
+        header.createEl( "span", { text: this.encounter_name, cls: "tools-for-5e-encounter-header-title"} )
 
         const controlsContainer = header.createDiv({ cls: "tools-for-5e-encounter-controls" });
 
@@ -675,7 +685,7 @@ export abstract class MyEncounterView extends ItemView
         setIcon(displayBtn, "eye");
         displayBtn.addEventListener("click", async () =>
         {
-            await this.plugin.openPlayerWindow( null );
+            await this.plugin.openPlayerWindow();
             await this.showParticipantForPlayer( this.encounter_pos );
         });
 
@@ -683,7 +693,8 @@ export abstract class MyEncounterView extends ItemView
         setIcon(reloadBtn, "refresh-cw");
         reloadBtn.addEventListener("click", async () =>
         {
-            await this.loadEncounter( this.encounter_file );
+            if( this.encounter_file )
+                await this.loadEncounter( this.encounter_file );
         });
 
         const resetBtn = controlsContainer.createEl("button", { cls: "clickable-icon tools-for-5e-control-btn btn-reset", text: "reset", title: "reset" });
@@ -730,7 +741,8 @@ export abstract class MyEncounterView extends ItemView
         this.sortParticipantsByInitiative();
         for( const index in this.liveParticipants )
         {
-            this.liveParticipants[index].renderRow( tbody, index == this.encounter_pos, async () => { await this.save(); this.render() } ); //add what is called after
+            // [index]?. --> checkt vorher ob index existiert
+            this.liveParticipants[index]?.renderRow( tbody, Number( index ) === this.encounter_pos, async () => { await this.save(); this.render() } ); //add what is called after
         }
 
         const detailSection = mainLayout.createEl("div", { cls: "tools-for-5e-encounter-detail-container" });
@@ -818,6 +830,12 @@ export abstract class MyEncounterView extends ItemView
 
             this.sortParticipantsByInitiative();
 
+            if( !this.encounter_file )
+            {
+                console.warn( "no active encounter file");
+                return;
+            }
+
             await this.plugin.app.fileManager.processFrontMatter( this.encounter_file, (fm) =>
             {
                 if( !fm || fm.type !== "encounter" )
@@ -862,7 +880,7 @@ export abstract class MyEncounterView extends ItemView
 
 
         const beast = participant.fixedData as MyBeast | null;
-        const srcData = this.plugin.getBase64ImageAsSrcData( beast?.fluffImage )
+        const srcData = this.plugin.getBase64ImageAsSrcData( beast?.fluffImage ?? "" )
 
         if( !srcData )
         {

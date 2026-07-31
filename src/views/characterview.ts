@@ -1,11 +1,13 @@
-import { EventRef, setIcon, Notice, Modal, TFile } from "obsidian";
+import { EventRef, setIcon, Notice, Modal, TFile, WorkspaceLeaf } from "obsidian";
+
+import type ToolsFor5e from "../main";
 
 import { addItemToEncounter } from "../utils/encounterUtils";
 
 import { ConfirmModal } from "../modals";
 import { MyListView } from "./listview"
 import { MyCharacter } from "../character"
-import { MyEncounterParticipant } from "./encountertrackerview"
+//import { MyEncounterParticipant } from "./encounterview"
 
 export const CHARACTER_VIEW = "tools-for-5e-character-pane";
 
@@ -19,7 +21,7 @@ export class MyCharacterView extends MyListView<MyCharacter>
     constructor( leaf: WorkspaceLeaf, plugin: ToolsFor5e )
     {
         // daten müssen hier erst noch geladen werden
-        super(leaf, plugin, [], ["Local"]);
+        super( leaf, plugin, [] );
         this.loadCharacters();
 
         this.registerEvent(

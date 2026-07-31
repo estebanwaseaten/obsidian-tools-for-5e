@@ -52,10 +52,15 @@ function mapIcon( key: string): string
 function consumeTrailingIconMarker( a: Element ): string | null
 {
   const sib = a.nextSibling;
-  if (!sib || sib.nodeType !== Node.TEXT_NODE) return null;
+  if (!sib || sib.nodeType !== Node.TEXT_NODE)
+      return null;
+
   const text = sib.textContent ?? '';
   const m = text.match(/^\s*\{icon[:=]([\w-]+)\}\s*/);
-  if (!m) return null;
+
+  if (!m)
+      return null;
+
   sib.textContent = text.replace(m[0], ''); // strip marker from output
-  return m[1];
+  return m[1] ?? null;
 }

@@ -1,19 +1,20 @@
 import {App, Notice, PluginSettingTab, Setting } from "obsidian";
-import { remote } from "electron";
 
 import * as fs from "fs";
 import * as path from "path";
 
 import ToolsFor5e from "./main";
-import { Bestiary } from "./bestiary"
+import { BeastCompendium } from "./bestiary"
 
 
-import { pathExists, verify5eToolsPath, verify5eImgPath } from "./utils/fileUtils";
+import { pathExists, verify5eToolsPath } from "./utils/fileUtils";
 
 //
 async function pickFolder(): Promise<string | null>
 {
-      const result = await remote.dialog.showOpenDialog(
+    // @ts-ignore
+    const electron = require("electron");
+      const result = await electron.remote.dialog.showOpenDialog(
           {
               properties: ["openDirectory"],
           });
@@ -27,6 +28,9 @@ export interface ToolsFor5eSettings
 {
     useMetricUnits: boolean;
     rollHealthpoints: boolean;
+    useLiveImages: boolean;
+    liveImageBaseURL: string;
+    liveImageURLParam: string;
     fiveEtoolsExternalDir: string;
     enabledSources: Record<string, boolean>;
 
@@ -36,6 +40,9 @@ export const DEFAULT_SETTINGS: ToolsFor5eSettings =
 {
     useMetricUnits: true,
     rollHealthpoints: false,
+    useLiveImages: false,
+    liveImageBaseURL: '',
+    liveImageURLParam: '',
     fiveEtoolsExternalDir: '',
     enabledSources: {},
 }
@@ -111,18 +118,19 @@ export class ToolsFor5eSettingsTab extends PluginSettingTab
 
                                if( await verify5eToolsPath( folder ) )
                                {
-                                   this.plugin.myBeastary = new Beastary();
-                                   await this.plugin.myBeastary.build(this.plugin.app, this.plugin.absoluteDataPath, this.plugin.absoluteImgPath);
-                                   await this.plugin.registerSources(this.plugin.myBeastary.getSources());
+                                   this.plugin.myBestiary = new BeastCompendium( this.plugin );
+                                   await this.plugin.myBestiary.build( this.plugin.absoluteDataPath, this.plugin.absoluteImgPath );
+                                   await this.plugin.registerSources( this.plugin.myBestiary.getSources() );
+
                                    new Notice("Located 5etools Folder ✓ " );
                                }
                                else
                                {
-                                   new Notice("Located some Folder ?" );
+                                   new Notice("Located some Folder, but cannot build Beastary." );
                                }
-                               await this.plugin.saveSettings();
+                               //await this.plugin.saveSettings();
                             }
-                            catch( e )
+                            catch( e: any )
                             {
                                 this.plugin.settings.fiveEtoolsExternalDir = '';
                                 this.plugin.settings.enabledSources = {};
@@ -134,6 +142,58 @@ export class ToolsFor5eSettingsTab extends PluginSettingTab
                         }
                     }
                 ));
+
+                new Setting( containerEl )
+                    .setName('use live images?')
+                    .setDesc('use live images (URL is needed)')
+                    .addToggle(toggle => toggle
+                        .setValue(this.plugin.settings.useLiveImages) // Aktuellen Boolean-Wert laden
+                        .onChange(async (value: boolean) => {
+                            this.plugin.settings.useLiveImages = value; // Wert im Plugin-State aktualisieren
+                            await this.plugin.saveSettings();           // In der data.json von Obsidian speichern
+                            this.display();
+                        })
+                    );
+
+                if( this.plugin.settings.useLiveImages )
+                {
+                    const urlSetting = new Setting( containerEl )
+                        .setName('Live image URL')
+                        .setDesc( 'Live image URL of books that you own' )
+                        .addText(text => text
+                            .setPlaceholder('URL...')
+                            .setValue(this.plugin.settings.liveImageBaseURL ?? '')
+                            .onChange(async (value) => {
+                                // 1. Wert in den Settings speichern
+                                this.plugin.settings.liveImageBaseURL = value.trim();
+                                await this.plugin.saveSettings();
+                            })
+                        );
+
+                    urlSetting.settingEl.style.flexDirection = 'column';
+                    urlSetting.settingEl.style.alignItems = 'stretch';
+                    urlSetting.settingEl.style.gap = '10px';
+                    const inputEl = urlSetting.controlEl.querySelector('input');
+                    if (inputEl)
+                    {
+                        inputEl.style.width = '100%';
+                        inputEl.style.marginTop = '4px';
+                    }
+
+                    new Setting( containerEl )
+                        .setName('Live image URL parameter')
+                        .setDesc( 'Parameter at the end of the live image URL' )
+                        .addText(text => text
+                            .setPlaceholder('param...')
+                            .setValue(this.plugin.settings.liveImageURLParam ?? '')
+                            .onChange(async (value) => {
+                                // 1. Wert in den Settings speichern
+                                this.plugin.settings.liveImageURLParam = value.trim();
+                                await this.plugin.saveSettings();
+                            })
+                        );
+                }
+
 
                 containerEl.createEl('h2', {text: 'Sources (only select what you own!)'});
                 const sources = Object.keys( this.plugin.settings.enabledSources ).sort();

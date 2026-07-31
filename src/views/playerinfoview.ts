@@ -1,11 +1,11 @@
-import { ItemView, WorkspaceLeaf, convertFileSrc } from "obsidian";
+import { ItemView, WorkspaceLeaf } from "obsidian";
 
 
 export const PLAYER_INFO_VIEW = "tools-for-5e-player-info-view";
 
-type PlayerInfoMode = "empty" | "image" | "text"
+type PlayerInfoMode = "empty" | "image" | "text" | "custom"
 
-interface PlayerInfoState
+export interface PlayerInfoState
 {
     mode: PlayerInfoMode;
     imageSrc?: string | null;
@@ -31,14 +31,15 @@ export class MyPlayerInfoView extends ItemView
 
     async setState( state: PlayerInfoState, result: any )
     {
-        this.state = { mode: "empty", ...state };
+        this.state = { ...state, mode: state?.mode ?? "empty" };
+
         this.render();
         await super.setState( state, result );
     }
 
-    getState(): PlayerInfoState
+    getState(): any
     {
-        return this.state;
+        return this.state as unknown as any;
     }
 
     async onOpen()
@@ -88,7 +89,7 @@ export class MyPlayerInfoView extends ItemView
         }
         else if( this.state.imagePath )
         {
-            src = convertFileSrc( this.state.imagePath );
+            src = this.app.vault.adapter.getResourcePath( this.state.imagePath );
         }
 
         if( !src )

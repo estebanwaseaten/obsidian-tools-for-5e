@@ -5,8 +5,9 @@ import { getIconSVG } from "../common";
 import { crToNumber } from "../utils/convUtils";
 import { addItemToEncounter } from "../utils/encounterUtils";
 
-import { BeastCompendium } from "../bestiary"
-import { MyListView } from "./listview"
+import { MyBeast } from "../beast";
+import { BeastCompendium } from "../bestiary";
+import { MyListView } from "./listview";
 
 export const BEAST_VIEW = "tools-for-5e-beast-pane";
 
@@ -106,7 +107,7 @@ export class MyBeastView extends MyListView<MyBeast>
 
     private openFilterCrMenu( evt: MouseEvent )
     {
-        const m = new Menu(this.plugin);
+        const m = new Menu();
         for( const cr of this.crArray )
         {
             m.addItem((item: MenuItem) => {
@@ -133,14 +134,16 @@ export class MyBeastView extends MyListView<MyBeast>
                 cr => {
                     if( this.crIndex.has(cr) )
                     {
-                        crSet = crSet.union( this.crIndex.get(cr)! );
+                        //crSet = crSet.union( this.crIndex.get(cr)! );
+                        crSet = new Set([...crSet, ...this.crIndex.get(cr)!]);
                     }
                 }
             );
-            filteredSet = filteredSet.intersection( crSet );
+            //filteredSet = filteredSet.intersection( crSet );
+            filteredSet = new  Set([...filteredSet].filter( x => crSet.has(x)));
         }
 
-        return Array.from( filteredSet, i => items[i] );
+        return Array.from( filteredSet, i => items[i] ).filter( (item): item is MyBeast => !!item);
     }
 
 }

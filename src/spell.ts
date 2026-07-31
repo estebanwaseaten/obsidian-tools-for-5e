@@ -18,6 +18,8 @@ export interface MySpell
     school: string;
     source: string;
 
+    entries: any[];
+
     //from fluff
     fluffImage?: string;
 
@@ -34,15 +36,15 @@ export class SpellSuggestionModal extends FuzzySuggestModal<MySpell>
         super(plugin);
         this.setPlaceholder("Pick an spell...")
     }
-    getSpellText(spell: MySpell): string
+    getItemText(spell: MySpell): string
     {
         return spell.name;
     }
-    getSpells(): MySpell[]
+    getItems(): MySpell[]
     {
         return this.spells;
     }
-    onChooseSpell( spell: MySpell ): void
+    onChooseItem( spell: MySpell ): void
     {
         this.onPick( spell );
     }

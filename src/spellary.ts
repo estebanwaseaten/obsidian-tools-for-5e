@@ -25,7 +25,16 @@ interface SourcesFile {
 interface SpellRaw {
     name: string;
     source: string;
-    // only the fields you actually need
+
+    time?: any[];
+    range?: any;
+    components?: any;
+    meta?: any;
+    school?: any;
+    page?: any;
+    level?: any;
+    infotext?: string;
+    entries?: any[];
 }
 
 interface SpellFluffRaw {
@@ -86,8 +95,15 @@ export class SpellCompendium extends Compendium<SpellRaw, MySpell>
                 }
             }
 
-            //also extract info from sources file:
-            const sourcesFile = await readJSONFile<SourcesFile>( sourcesFilePath[0] );
+            let sourcesFile: SourcesFile = {} as SourcesFile;
+            const firstPath = sourcesFilePath[0];
+            if( firstPath )
+            {
+                //also extract info from sources file:
+                sourcesFile = await readJSONFile<SourcesFile>( firstPath );
+            }
+
+
             for( const [source, spells] of Object.entries(sourcesFile) )
             {
                 // source ist jetzt z.B. "AAG"
@@ -147,7 +163,7 @@ export class SpellCompendium extends Compendium<SpellRaw, MySpell>
         this.trigger( "changed" ); //notifies all listeners
     }
 
-    private mapFromRaw( raw: SpellRaw ): MySpell
+    public mapFromRaw( raw: SpellRaw ): MySpell
     {
         const useMeters = this.plugin.useMetricUnits();
 
@@ -231,7 +247,8 @@ export class SpellCompendium extends Compendium<SpellRaw, MySpell>
         range: rangeStr,
         components: componentsStr,
         duration: durationStr,
-    //    infotext: infoTextHtml,
+        infotext: raw.infotext ?? "",
+        entries: raw.entries ?? [],
         isritual: isRitual,
         markdownlink: "",
         imagePath: "",
@@ -243,8 +260,5 @@ export class SpellCompendium extends Compendium<SpellRaw, MySpell>
        return spell;
     }
 
-    getClasses(): string[]
-    {
-        //return this.#classes;
-    }
+
 }
