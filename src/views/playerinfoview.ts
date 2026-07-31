@@ -19,6 +19,7 @@ export interface PlayerInfoState
 export class MyPlayerInfoView extends ItemView
 {
     private state: PlayerInfoState = { mode: "empty" };
+    private containerInnerEl: HTMLDivElement;
 
     constructor( leaf: WorkspaceLeaf )
     {
@@ -44,14 +45,26 @@ export class MyPlayerInfoView extends ItemView
 
     async onOpen()
     {
+        this.contentEl.style.padding = "0";
+        this.contentEl.style.overflow = "hidden"; // Verhindert ungewollte Scrollbalken
+
+
+        this.containerInnerEl = this.contentEl.createEl("div", {  cls: "tools-for-5e-player-info-container" });
+        this.containerInnerEl.style.width = "100%";
+        this.containerInnerEl.style.height = "100%";
+        this.containerInnerEl.style.display = "flex";
+        this.containerInnerEl.style.flexDirection = "column";
+
         this.render();
     }
 
     private render()
     {
-        const root = this.contentEl;
+        if (!this.containerInnerEl) return;
+
+        const root = this.containerInnerEl;
         root.empty();
-        root.addClass( "tools-for-5e-player-info-container" );
+        //root.addClass( "tools-for-5e-player-info-container" );
 
         if( this.state.backgroundColor )
         {
@@ -98,7 +111,7 @@ export class MyPlayerInfoView extends ItemView
             return;
         }
 
-        const img = this.contentEl.createEl( "img", { cls: "tools-for-5e-player-info-image" });
+        const img = this.containerInnerEl.createEl( "img", { cls: "tools-for-5e-player-info-image" });
         img.src = src;
         img.alt = this.state.altText ?? "";
     }
@@ -107,18 +120,18 @@ export class MyPlayerInfoView extends ItemView
     {
         if( !this.state.text ) return;
 
-        this.contentEl.createEl( "div", { cls: "tools-for-5e-player-info-text", text: this.state.text } );
+        this.containerInnerEl.createEl( "div", { cls: "tools-for-5e-player-info-text", text: this.state.text } );
     }
 
     private renderCustom()
     {
         if( !this.state.html ) return;
 
-        this.contentEl.innerHTML = this.state.html;
+        this.containerInnerEl.innerHTML = this.state.html;
     }
 
     async onClose()
     {
-        this.contentEl.empty();
+        this.containerInnerEl.empty();
     }
 }
