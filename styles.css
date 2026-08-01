@@ -7,6 +7,40 @@ If your plugin does not need CSS, delete this file.
 
 */
 
+/* --- ENCOUNTER ICON (Gekreuzte Schwerter / Würfel) --- */
+.nav-file.is-encounter .nav-file-title-icon {
+    display: none; /* Versteckt das Standard-Obsidian-Dokument-Icon */
+}
+
+.nav-file.is-encounter .nav-file-title-content::before {
+    content: "⚔️ "; /* Dein Wunsch-Icon als Emoji oder Unicode */
+    margin-right: 8px;
+    font-size: 1.1em;
+}
+
+/* --- NPC ICON (Schild / Maske / Zahnrad) --- */
+.nav-file.is-npc .nav-file-title-icon {
+    display: none;
+}
+
+.nav-file.is-npc .nav-file-title-content::before {
+    content: "👤 ";
+    margin-right: 8px;
+    font-size: 1.1em;
+}
+
+/* --- CHARACTER ICON (Held / Stern / Krone) --- */
+.nav-file.is-character .nav-file-title-icon {
+    display: none;
+}
+
+.nav-file.is-character .nav-file-title-content::before {
+    content: "🌟 ";
+    margin-right: 8px;
+    font-size: 1.1em;
+}
+
+
 /*  ###   ###   #   #  #   #   ###   #   #
  * #     #   #  ## ##  ## ##  #   #  ##  #
  * #     #   #  # # #  # # #  #   #  # # #

@@ -1,7 +1,7 @@
-import {App, MarkdownView, Modal, Notice, Plugin, TFile, WorkspaceLeaf, View, requestUrl } from 'obsidian';
+import {App, MarkdownView, Modal, Notice, Plugin, TFile, TFolder, WorkspaceLeaf, View, requestUrl } from 'obsidian';
 import {DEFAULT_SETTINGS, ToolsFor5eSettings, ToolsFor5eSettingsTab} from "./settings";
-
 import { pathExists, verify5eToolsPath } from "./utils/fileUtils";
+import { ENCOUNTER_FRONTMATTER, NPC_FRONTMATTER, CHARACTER_FRONTMATTER } from "./constants";
 
 import { toolsPostProcessor } from './markdown';
 
@@ -79,65 +79,44 @@ export default class ToolsFor5e extends Plugin {
         this.registerView( DETAIL_VIEW, (leaf) => new MyDetailView( leaf, this ) );
         this.registerView( PLAYER_INFO_VIEW, (leaf) => new MyPlayerInfoView( leaf ) );
 
-		this.addRibbonIcon('sword', 'D&D items', (evt: MouseEvent) => {
+        // ribbon icons:
+        const colorMain = 'black';
+        const bgcolorMain = '#FDF1DC';
+		const itemIcon = this.addRibbonIcon('sword', 'D&D items', (evt: MouseEvent) => {
 			this.openPane( ITEM_VIEW, MyItemView );
 			//void this.openItemsPane();
 		});
+        itemIcon.style.color = colorMain; // Nutzt das Theme-Blau/Lila
+        itemIcon.style.backgroundColor = bgcolorMain;
 
-        this.addRibbonIcon('scroll', 'D&D spells', (evt: MouseEvent) => {
+        const scrollIcon = this.addRibbonIcon('scroll', 'D&D spells', (evt: MouseEvent) => {
 			this.openPane( SPELL_VIEW, MySpellView );
 			//void this.openSpellsPane();
 		});
+        scrollIcon.style.color = colorMain;
+        scrollIcon.style.backgroundColor = bgcolorMain;
 
-		this.addRibbonIcon('skull', 'D&D monsters', (evt: MouseEvent) => {
+        const monsterIcon = this.addRibbonIcon('skull', 'D&D monsters', (evt: MouseEvent) => {
 			this.openPane( BEAST_VIEW, MyBeastView );
 			//void this.openMonstersPane();
 		});
+        monsterIcon.style.color = colorMain;
+        monsterIcon.style.backgroundColor = bgcolorMain;
 
-        this.addRibbonIcon('users', 'D&D characters', () => {
+        const characterIcon = this.addRibbonIcon('users', 'D&D characters', () => {
             this.openPane( CHARACTER_VIEW, MyCharacterView );
         });
+        characterIcon.style.color = colorMain;
+        characterIcon.style.backgroundColor = bgcolorMain;
 
-        this.addRibbonIcon('venetian-mask', 'D&D NPCs', () => {
+        const npcIcon = this.addRibbonIcon('venetian-mask', 'D&D NPCs', () => {
             this.openPane( NPC_VIEW, MyNPCView );
         });
-
-        this.addRibbonIcon( "monitor", "Open player display window", async () =>
-        {
-            await this.openPlayerWindow();
-        });
-
-        this.addRibbonIcon( "eraser", "Clear player display", async () =>
-        {
-            await this.clearPlayerWindow();
-        });
-
-        this.addRibbonIcon( "paper-plane", "Send message to player screen", async () =>
-        {
-            new TextInputModal( this.app, "Message to Players", "Message", async (value: string) =>
-                {
-                    if( value.trim().length > 0 )
-                    {
-                        await this.showTextInPlayerWindow( value );
-                        //await onChanged();
-                    }
-                } ).open();
-
-        });
-
-
-		//register markdown post-processor
-		this.registerMarkdownPostProcessor( toolsPostProcessor( this ) );
-
-		//whenever the edit leaf changes, write to tracker variable this.lastMdLeaf:
-		this.registerEvent(
-      		this.app.workspace.on("active-leaf-change", (leaf) => {
-        		const mv = this.app.workspace.getActiveViewOfType( MarkdownView );
-        		if (mv) this.lastMdLeaf = mv.leaf;
-      		}));
+        npcIcon.style.color = colorMain;
+        npcIcon.style.backgroundColor = bgcolorMain;
 
         //start encounters:
-        this.addRibbonIcon("swords", "Start encounter", (evt) =>
+        const encounterIcon = this.addRibbonIcon("swords", "Start encounter", (evt) =>
         {
             const activeFile = this.app.workspace.getActiveFile();
             const cache = activeFile ? this.app.metadataCache.getFileCache(activeFile) : null;
@@ -151,12 +130,54 @@ export default class ToolsFor5e extends Plugin {
                 new Notice("Current File is not an encounter.");
             }
         });
+        encounterIcon.style.color = "#9c2b1b";
+        encounterIcon.style.backgroundColor = bgcolorMain;
 
+        const playerWinIcon = this.addRibbonIcon( "monitor", "Open player display window", async () =>
+        {
+            await this.openPlayerWindow();
+        });
+
+        playerWinIcon.style.color = "#090088";
+        playerWinIcon.style.backgroundColor = bgcolorMain;
+
+        const clearWinIcon =this.addRibbonIcon( "eraser", "Clear player display", async () =>
+        {
+            await this.clearPlayerWindow();
+        });
+        clearWinIcon.style.color = "#090088";
+        clearWinIcon.style.backgroundColor = bgcolorMain;
+
+        const sendWinIcon =this.addRibbonIcon( "paper-plane", "Send message to player screen", async () =>
+        {
+            new TextInputModal( this.app, "Message to Players", "Message", async (value: string) =>
+                {
+                    if( value.trim().length > 0 )
+                    {
+                        await this.showTextInPlayerWindow( value );
+                        //await onChanged();
+                    }
+                } ).open();
+
+        });
+        sendWinIcon.style.color = "#090088";
+        sendWinIcon.style.backgroundColor = bgcolorMain;
+
+
+		//register markdown post-processor
+		this.registerMarkdownPostProcessor( toolsPostProcessor( this ) );
+
+		//whenever the edit leaf changes, write to tracker variable this.lastMdLeaf:
+		this.registerEvent(
+      		this.app.workspace.on("active-leaf-change", (leaf) => {
+        		const mv = this.app.workspace.getActiveViewOfType( MarkdownView );
+        		if (mv) this.lastMdLeaf = mv.leaf;
+      		}));
+
+        //righ click menu
         this.registerEvent(
             this.app.workspace.on("file-menu", ( menu, file ) =>
             {
-                if (!(file instanceof TFile)) return;
-
                 // Prüfen, ob es ein Encounter ist
                 const cache = this.app.metadataCache.getFileCache(file);
                 if (cache?.frontmatter?.type === "encounter")
@@ -169,9 +190,112 @@ export default class ToolsFor5e extends Plugin {
                             });
                     });
                 }
-            }));
 
+                const targetFolder = file instanceof TFolder ? file : file.parent;
+                if( targetFolder )
+                {
+                     //menu.addSeparator();
+
+                     menu.addItem((item) => {
+                            item.setTitle("Create new encounter...")
+                                .setIcon("swords") // Nutzt Obsidian-interne Icons
+                                .onClick(async () => {
+                                    await this.createNewNoteWithType( targetFolder.path, "encounter", "New Encounter");
+                                });
+                        });
+                    menu.addItem((item) => {
+                           item.setTitle("Create new character...")
+                               .setIcon("user") // Nutzt Obsidian-interne Icons
+                               .onClick(async () => {
+                                   await this.createNewNoteWithType( targetFolder.path, "character", "New Character");
+                               });
+                       });
+                   menu.addItem((item) => {
+                          item.setTitle("Create new NPC...")
+                              .setIcon("user-check") // Nutzt Obsidian-interne Icons
+                              .onClick(async () => {
+                                  await this.createNewNoteWithType( targetFolder.path, "npc", "New NPC");
+                              });
+                      });
+                }
+        }));
+
+
+        // make files reflect frontmatter type:
+        // update icons at startup
+        this.app.workspace.onLayoutReady(() => { this.updateFileExplorerIcons(); });
+
+        // update icons on frontmatter change
+        this.registerEvent( this.app.metadataCache.on("changed", (file) => { this.updateFileExplorerIcons(); }) );
+
+        // update icons on rename... necessary???
+        this.registerEvent( this.app.vault.on("rename", () => this.updateFileExplorerIcons()) );
 	}
+
+    private updateFileExplorerIcons()
+    {
+        const fileElements = document.querySelectorAll(".nav-file");
+
+        fileElements.forEach((el) =>
+        {
+            const titleEl = el.querySelector(".nav-file-title");
+            if( !titleEl ) return;
+
+            const filePath = titleEl.getAttribute("data-path");
+            if( !filePath ) return;
+
+            const file = this.app.vault.getAbstractFileByPath( filePath );
+            if( !(file instanceof TFile) ) return;
+
+            // get frontmatter from cache
+            const cache = this.app.metadataCache.getFileCache( file );
+            const type = cache?.frontmatter?.type;
+
+            // 1. remove classes
+            el.removeClass("is-encounter", "is-npc", "is-character");
+
+            // 2. set classes
+            if (type === "encounter")
+            {
+                el.addClass("is-encounter");
+            }
+            else if (type === "npc")
+            {
+                el.addClass("is-npc");
+            }
+            else if (type === "character")
+            {
+                el.addClass("is-character");
+            }
+        });
+    }
+
+    private async createNewNoteWithType( folderPath: string, type: "encounter" | "npc" | "character", defaultName: string )
+    {
+        let fileName = `${folderPath}/${defaultName}.md`;
+        let counter = 1;
+        while (this.app.vault.getAbstractFileByPath(fileName))
+        {
+            fileName = `${folderPath}/${defaultName} ${counter}.md`;
+            counter++;
+        }
+
+        let frontmatter = "";
+        if( type === "encounter" )
+        {
+            frontmatter = ENCOUNTER_FRONTMATTER;
+        }
+        else if( type === "character" )
+        {
+            frontmatter = CHARACTER_FRONTMATTER;
+        }
+        else if( type === "npc" )
+        {
+            frontmatter = NPC_FRONTMATTER;
+        }
+        const newFile = await this.app.vault.create(fileName, frontmatter);
+        await this.app.workspace.getLeaf(false).openFile(newFile);
+    }
 
     async initializeFiles()
     {
@@ -185,8 +309,6 @@ export default class ToolsFor5e extends Plugin {
             }
         }
     }
-
-
 
     async registerSources( sources: Iterable<string>  )     //includes Set and Array
     {
@@ -321,31 +443,6 @@ export default class ToolsFor5e extends Plugin {
 
         return `data:image/webp;base64,${base64Image}`;
     }
-
-    /*
-    old version:
-    public getBase64ImageAsSrcData( relImgPath: string ): string | null
-    {
-        if( !relImgPath )
-            return null;
-
-        const cleanFluffPath = relImgPath.replace(/\//g, path.sep);
-        const absoluteImgPath = path.join( this.absoluteImgPath, cleanFluffPath );
-
-        if( !fs.existsSync(absoluteImgPath) )
-        {
-            console.warn("could not find image path: " + absoluteImgPath);
-            return null;
-        }
-
-        const imageBuffer = fs.readFileSync( absoluteImgPath );
-        const base64Image = imageBuffer.toString( 'base64' );
-
-        return `data:image/webp;base64,${base64Image}`;
-    }
-    */
-
-
 
     public getImgPath()
     {

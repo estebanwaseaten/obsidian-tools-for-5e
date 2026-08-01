@@ -1,9 +1,7 @@
-import type { MarkdownPostProcessor } from 'obsidian';
-import { setIcon } from 'obsidian';
-import type { Plugin } from 'obsidian';
+import { MarkdownPostProcessor, setIcon, TFile, Notice } from 'obsidian';
+import ToolsFor5e from "./main";
 
-
-export function toolsPostProcessor( plugin: Plugin ): MarkdownPostProcessor
+export function toolsPostProcessor( plugin: ToolsFor5e  ): MarkdownPostProcessor
 {
     //const { app } = plugin; // access app, settings, etc.
     return (el, ctx) =>
@@ -11,28 +9,29 @@ export function toolsPostProcessor( plugin: Plugin ): MarkdownPostProcessor
         el.querySelectorAll('a.internal-link').forEach( (a) =>
         {
             //make sure we only process once:
-            if (!(a instanceof Element)) return;
+            if (!(a instanceof HTMLAnchorElement)) return;
             if (a.getAttribute('data-icon-decorated')) return;
 
-            // Strategy 1: trailing text marker, e.g. [[Note]] {icon=wip}
+
+            if( href.startsWith("5e:") )
+            {
+                const parts = href.split(":"); // ["5e", "beast", "Goblin"]
+                if (parts.length >= 3)
+                {
+
+                }
+            }
+
             const iconFromTrailing = consumeTrailingIconMarker(a);
-
-        //    console.log( "icon id: " + iconFromTrailing );
             if( !iconFromTrailing ) return;
-
             const iconName = mapIcon( iconFromTrailing ); // map key -> registered icon id
-
-            //console.log( "icon name: " + iconName );
 
             a.classList.add( 'parse-items-too-editor-link-text');
             const containerEl = a.createSpan( {cls: 'parse-items-too-editor-link-container'});
             const iconEl = containerEl.createSpan({ cls: 'parse-items-too-editor-link-icon' });
             setIcon(iconEl, iconName);
-            //setIcon(containerEl, iconName);
-            //containerEl.append( a );
             a.replaceWith( containerEl );
             containerEl.append(a);
-            //a.before(iconEl);
             a.setAttribute('data-icon-decorated', '1');
         });
     }
