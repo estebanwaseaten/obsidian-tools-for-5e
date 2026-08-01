@@ -46,14 +46,16 @@ export class MyPlayerInfoView extends ItemView
     async onOpen()
     {
         this.contentEl.style.padding = "0";
-        this.contentEl.style.overflow = "hidden"; // Verhindert ungewollte Scrollbalken
-
+        this.contentEl.style.margin = "0";
+        this.contentEl.style.overflow = "hidden";
 
         this.containerInnerEl = this.contentEl.createEl("div", {  cls: "tools-for-5e-player-info-container" });
         this.containerInnerEl.style.width = "100%";
         this.containerInnerEl.style.height = "100%";
         this.containerInnerEl.style.display = "flex";
         this.containerInnerEl.style.flexDirection = "column";
+
+//        this.containerInnerEl.style.margin = "0 0 0 0";
 
         this.render();
     }
@@ -62,18 +64,12 @@ export class MyPlayerInfoView extends ItemView
     {
         if (!this.containerInnerEl) return;
 
+        const customColor = this.state.backgroundColor || "black";
+
         const root = this.containerInnerEl;
         root.empty();
-        //root.addClass( "tools-for-5e-player-info-container" );
 
-        if( this.state.backgroundColor )
-        {
-            root.style.backgroundColor = this.state.backgroundColor;
-        }
-        else
-        {
-            root.style.backgroundColor = "black";
-        }
+        root.style.backgroundColor = customColor;
 
         switch( this.state.mode )
         {
