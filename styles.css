@@ -48,6 +48,11 @@ If your plugin does not need CSS, delete this file.
  *  ###   ###   #   #  #   #   ###   #   #
 */
 
+.listview-action-cell
+{
+    width: 64px;
+}
+
 .tools-for-5e-encounter-container
 {
     display: flex;

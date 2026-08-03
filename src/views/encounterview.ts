@@ -490,22 +490,46 @@ class EncounterParticipant       //data for live encounter
         }
         else
         {
-            const header = root.createEl( "div", { cls: "tools-for-5e-encounter-detail-header" });
+            const statblock = root.createEl( "div", { cls: "tools-for-5e-statblock-container" });
+            const header = statblock.createEl( "div", { cls: "tools-for-5e-statblock-header" });
+            const headerLeft = header.createEl( "div",  { cls: "tools-for-5e-statblock-header-left" });
+
             const level = (this.fixedData as any)?.level ?? "?";
             const className = (this.fixedData as any)?.["class"] || "class unknown";
             const race = (this.fixedData as any)?.race || "";
-            const temp = `- level ${level} ${className} (${race})`.toLowerCase();
-            header.createEl( "div", { cls: "title", text: this.participantData.name + " " + temp} );
+            const temp = `Level ${level} ${className}, ${race}`;
+
+            headerLeft.createEl( "div", { cls: "title", text: `${this.participantData.name}` } );
+            headerLeft.createEl( "hr", { attr: { style: "border-color: #9c2b1b; margin: 5px 0;" } });
+            headerLeft.createEl( "div", { cls: "subtitle", text: `${temp}` });
+
+            const acWrapper = header.createEl("div", { cls: "stat-badge-stacked ac-badge" });
+            const acIconContainer  = acWrapper.createEl("div", { cls: "stat-icon-stacked" });
+            const acValueBox = acWrapper.createEl("div", { cls: "stat-value-overlay", text: String( (this.fixedData as any)?.ac ?? "") });
+            setIcon( acIconContainer, "shield" );
+
+            const hp = this.getHPObject();
+            const hpWrapper = header.createEl("div", { cls: "stat-badge-stacked hp-badge" });
+            const hpIconContainer  = hpWrapper.createEl("div", { cls: "stat-icon-stacked" });
+            const hpValueBox = hpWrapper.createEl("div", { cls: "stat-value-overlay", text: String( hp.hpCurrentValid ? hp.hpCurrent : "?" ) });
+            setIcon( hpIconContainer, "heart" );
 
 
-            const body = root.createEl( "div", { cls: "tools-for-5e-encounter-detail-body"} );
 
-            //just display the live data??
+            this.createProperty( headerLeft, "AC: " , (this.fixedData as any)?.ac );
+            this.createProperty( headerLeft, "Ini Bonus: " , (this.fixedData as any)?.iniBonus );
+
+            //also add the rest of the file?
 
         }
     }
 
-
+    createProperty( container: HTMLElement, title: string, content: string )
+    {
+        let propertyDiv = container.createEl( "div", { cls: "" } );
+        propertyDiv.createEl( "span", {cls: "tools-for-5e-statblock-smalltext-emph", text: `${title}`})
+        propertyDiv.createEl( "span", {cls: "tools-for-5e-statblock-smalltext-red", text: `${content}` })
+    }
 
 }
 

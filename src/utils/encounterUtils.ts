@@ -13,10 +13,17 @@ export async function addItemToEncounter( plugin: ToolsFor5e, data: { ref: strin
     await plugin.app.fileManager.processFrontMatter( activeFile, ( frontmatter ) =>
     {
         const currentType = frontmatter[ 'type' ];
-
-        if (currentType && currentType !== 'encounter')
+        console.log( currentType );
+        if( currentType !== 'encounter')
         {
-            new Notice(`Error: This file is "${currentType}", not encounter!`);
+            if( currentType )
+            {
+                new Notice(`Error: This file is "${currentType}", not encounter!`);
+            }
+            else
+            {
+                new Notice(`Error: This file is not an encounter!`);
+            }
             return;
         }
 

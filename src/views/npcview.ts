@@ -82,30 +82,37 @@ export class MyNPCView extends MyListView<MyNPC>
         row.createEl("td", { text: `🛡️ ${char.ac}` });
 
         // Spalte 4: Passive Wahrnehmung
-        row.createEl("td", { text: `👁️ ${char.passivePerception}` });
+        //row.createEl("td", { text: `👁️ ${char.passivePerception}` });
+
 
 
 
         // Spalte 5: Aktionen (z.B. Info-Button)
-        const actionCell = row.createEl("td");
 
-        const editButton = actionCell.createDiv({
+
+        const actionCell2 = row.createEl("td", {cls: "listview-action-cell"});
+
+        const editButton = actionCell2.createDiv({
             cls: "clickable-icon",
             attr: { "data-action": "edit" }
         });
         setIcon(editButton, "pencil");
+
+        const actionCell = row.createEl("td", {cls: "listview-action-cell"});
+
+        const insertButton = actionCell.createDiv({
+            cls: "clickable-icon",
+            attr: { "data-action": "insert" }
+        });
+        setIcon(insertButton, "plus");
+
     }
 
     onItemSelected( item: MyNPC, action: string ): void
     {
         if( action === "default" )
         {
-            addItemToEncounter(this.plugin,
-                {
-                    ref: item.filePath,
-                    kind: "npc",
-                    name: item.name
-                });
+
         }
         else if( action === "edit" )
         {
@@ -114,6 +121,15 @@ export class MyNPCView extends MyListView<MyNPC>
             {
                 this.app.workspace.getLeaf().openFile(file);
             }
+        }
+        else if( action === "insert" )
+        {
+            addItemToEncounter(this.plugin,
+                {
+                    ref: item.filePath,
+                    kind: "npc",
+                    name: item.name
+                });
         }
     }
 

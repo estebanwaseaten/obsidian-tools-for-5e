@@ -1,10 +1,10 @@
 {
-	"id": "sample-plugin",
+	"id": "obsidian-tools-for-5e",
     "name": "Tools for 5e",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
-	"author": "Obsidian",
+	"description": "Manage 5etools data of books you own.",
+	"author": "Daniel",
 	"authorUrl": "https://obsidian.md",
 	"fundingUrl": "https://obsidian.md/pricing",
     "isDesktopOnly": true

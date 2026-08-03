@@ -46,8 +46,22 @@ export class MyBeastView extends MyListView<MyBeast>
     //    td1b.createDiv( { text: item.hasFluffImages } );
     //    const td2 = row.createEl("td");
     //    td2.createDiv( { text: "info", attr: { "data-action": "info" } } );
-        const td3 = row.createEl("td");
-        td3.createDiv( { text: "insert", attr: { "data-action": "insert" } } );
+        const actionCellLink = row.createEl("td", {cls: "listview-action-cell"});
+        const linkButton = actionCellLink.createDiv({
+            cls: "clickable-icon",
+            attr: { "data-action": "link" }
+        });
+        setIcon(linkButton, "link");
+
+        const actionCellInsert = row.createEl("td", {cls: "listview-action-cell"});
+        const insertButton = actionCellInsert.createDiv({
+            cls: "clickable-icon",
+            attr: { "data-action": "insert" }
+        });
+        setIcon(insertButton, "plus");
+
+    //    const td3 = row.createEl("td");
+    //    td3.createDiv( { text: "insert", attr: { "data-action": "insert" } } );
     }
 
     onItemSelected( item: MyBeast, action: string ): void
@@ -57,6 +71,10 @@ export class MyBeastView extends MyListView<MyBeast>
         if (action === "default")
         {
             this.plugin.showDetail({ kind: "beast", data: item }, this.leaf );
+        }
+        else if( action === "link" )
+        {
+            this.plugin.insertIntoActiveFile( `[[5e:beast:${item.name}]]` );
         }
         else if( action === "insert" )
         {

@@ -44,10 +44,13 @@ export class MySpellView extends MyListView<MySpell>
     {
         const td = row.createEl("td");
         td.createSpan({ text: item.name });
-        const td2 = row.createEl("td");
-        td2.createDiv( { text: "info", attr: { "data-action": "info" } } );
-        const td3 = row.createEl("td");
-        td3.createDiv( { text: "insert", attr: { "data-action": "insert" } } );
+
+        const actionCellLink = row.createEl("td", {cls: "listview-action-cell"});
+        const editButton = actionCellLink.createDiv({
+            cls: "clickable-icon",
+            attr: { "data-action": "link" }
+        });
+        setIcon(editButton, "link");
     }
 
     onItemSelected( item: MySpell, action: string ): void
@@ -56,6 +59,10 @@ export class MySpellView extends MyListView<MySpell>
         if (action === "default")
         {
             this.plugin.showDetail({ kind: "spell", data: item }, this.leaf );
+        }
+        else if( action === "link" )
+        {
+            this.plugin.insertIntoActiveFile( `[[5e:spell:${item.name}]]` );
         }
     }
 

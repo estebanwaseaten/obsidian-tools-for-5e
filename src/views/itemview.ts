@@ -1,4 +1,4 @@
-import {  WorkspaceLeaf, Menu, setIcon, Notice } from "obsidian";
+import { WorkspaceLeaf, MarkdownView, Menu, setIcon, Notice } from "obsidian";
 import type { MenuItem } from "obsidian";
 import { getIconSVG } from "../common";
 
@@ -36,10 +36,18 @@ export class MyItemView extends MyListView<MyItem>
     {
         const td = row.createEl("td");
         td.createSpan({ text: item.name });
-        const td2 = row.createEl("td");
-        td2.createDiv( { text: "info", attr: { "data-action": "info" } } );
-        const td3 = row.createEl("td");
-        td3.createDiv( { text: "insert", attr: { "data-action": "insert" } } );
+
+        const actionCellLink = row.createEl("td", {cls: "listview-action-cell"});
+        const editButton = actionCellLink.createDiv({
+            cls: "clickable-icon",
+            attr: { "data-action": "link" }
+        });
+        setIcon(editButton, "link");
+
+    //    const td2 = row.createEl("td");
+    //    td2.createDiv( { text: "info", attr: { "data-action": "info" } } );
+    //    const td3 = row.createEl("td");
+    //    td3.createDiv( { text: "insert", attr: { "data-action": "insert" } } );
     }
 
     onItemSelected( item: MyItem, action: string ): void
@@ -49,6 +57,10 @@ export class MyItemView extends MyListView<MyItem>
         if (action === "default")
         {
             this.plugin.showDetail({ kind: "item", data: item }, this.leaf );
+        }
+        else if( action === "link" )
+        {
+            this.plugin.insertIntoActiveFile( `[[5e:item:${item.name}]]` );
         }
         // select and show in info window
 

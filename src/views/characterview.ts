@@ -106,31 +106,33 @@ export class MyCharacterView extends MyListView<MyCharacter>
         row.createEl("td", { text: `🛡️ ${char.ac}` });
 
         // Spalte 4: Passive Wahrnehmung
-        row.createEl("td", { text: `👁️ ${char.passivePerception}` });
+        //row.createEl("td", { text: `👁️ ${char.passivePerception}` });
 
 
 
         // Spalte 5: Aktionen (z.B. Info-Button)
-        const actionCell = row.createEl("td");
+        const actionCell = row.createEl("td", {cls: "listview-action-cell"});
 
         const editButton = actionCell.createDiv({
             cls: "clickable-icon",
             attr: { "data-action": "edit" }
         });
         setIcon(editButton, "pencil");
+
+        const actionCell2 = row.createEl("td", {cls: "listview-action-cell"});
+
+        const insertButton = actionCell2.createDiv({
+            cls: "clickable-icon",
+            attr: { "data-action": "insert" }
+        });
+        setIcon(insertButton, "plus");
     }
 
     onItemSelected( item: MyCharacter, action: string ): void
     {
         if( action === "default" )
         {
-            addItemToEncounter(
-                this.plugin,
-                {
-                    ref: item.filePath,
-                    kind: "character",
-                    name: item.name
-                });
+
         }
         else if( action === "edit" )
         {
@@ -139,6 +141,16 @@ export class MyCharacterView extends MyListView<MyCharacter>
             {
                 this.app.workspace.getLeaf().openFile( file );
             }
+        }
+        else if( action === "insert" )
+        {
+            addItemToEncounter(
+                this.plugin,
+                {
+                    ref: item.filePath,
+                    kind: "character",
+                    name: item.name
+                });
         }
     }
 

@@ -178,24 +178,29 @@ export default class ToolsFor5e extends Plugin {
         this.registerEvent(
             this.app.workspace.on("file-menu", ( menu, file ) =>
             {
-                // Prüfen, ob es ein Encounter ist
-                const cache = this.app.metadataCache.getFileCache(file);
-                if (cache?.frontmatter?.type === "encounter")
-                {
-                    menu.addItem((item) => {
-                        item.setTitle("Start encounter")
-                            .setIcon("swords") // Obsidian Icon Name
-                            .onClick(async () => {
-                                this.openEncounterView( file );
-                            });
-                    });
-                }
+				//check if it is a file
+				if (file instanceof TFile)
+				{
+					const cache = this.app.metadataCache.getFileCache(file);
+            		const type = cache?.frontmatter?.type;
+
+					if (cache?.frontmatter?.type === "encounter")
+	                {
+	                    menu.addItem((item) => {
+	                        item.setTitle("Start encounter")
+	                            .setIcon("swords") // Obsidian Icon Name
+	                            .onClick(async () => {
+	                                this.openEncounterView( file );
+	                            });
+	                    });
+	                }
+				}
+
 
                 const targetFolder = file instanceof TFolder ? file : file.parent;
                 if( targetFolder )
                 {
                      //menu.addSeparator();
-
                      menu.addItem((item) => {
                             item.setTitle("Create new encounter...")
                                 .setIcon("swords") // Nutzt Obsidian-interne Icons
@@ -221,12 +226,13 @@ export default class ToolsFor5e extends Plugin {
         }));
 
 
-        // make files reflect frontmatter type:
+        // make file icons reflect frontmatter type:
         // update icons at startup
         this.app.workspace.onLayoutReady(() => { this.updateFileExplorerIcons(); });
 
         // update icons on frontmatter change
         this.registerEvent( this.app.metadataCache.on("changed", (file) => { this.updateFileExplorerIcons(); }) );
+		this.registerEvent( this.app.metadataCache.on("resolve", (file) => { this.updateFileExplorerIcons(); }) );
 
         // update icons on rename... necessary???
         this.registerEvent( this.app.vault.on("rename", () => this.updateFileExplorerIcons()) );
@@ -295,6 +301,21 @@ export default class ToolsFor5e extends Plugin {
         }
         const newFile = await this.app.vault.create(fileName, frontmatter);
         await this.app.workspace.getLeaf(false).openFile(newFile);
+
+		let attempts = 0;
+    	const interval = setInterval(() =>
+		{
+        	this.updateFileExplorerIcons();
+        	attempts++;
+
+	        // stop as soon icon is set
+	        const success = document.querySelector(`.nav-file [data-path="${fileName}"]`);
+	        if (success || attempts > 15)
+			{
+	            clearInterval(interval);
+	        }
+    	}, 100); // Alle 100 Millisekunden prüfen
+
     }
 
     async initializeFiles()
@@ -552,5 +573,29 @@ export default class ToolsFor5e extends Plugin {
     {
         return this.settings?.useMetricUnits ?? false;
     }
+
+	public insertIntoActiveFile( insert: string )
+	{
+	    const activeLeaf = this.app.workspace.getMostRecentLeaf();
+		//console.log( activeLeaf );
+
+		if( activeLeaf && activeLeaf.view instanceof MarkdownView )
+		{
+			const markdownView = activeLeaf.view;
+			if (markdownView.getMode() === "preview")
+			{
+            	new Notice("Please change note mode to edit");
+            	return;
+        	}
+
+        	const editor = activeLeaf.view.editor;
+        	editor.replaceSelection(insert);
+        	editor.focus();
+    	}
+		else
+		{
+        	new Notice("Please have a note active to insert into.");
+    	}
+	}
 
 }
