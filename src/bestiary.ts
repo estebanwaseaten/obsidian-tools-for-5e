@@ -4,7 +4,42 @@ import { MyBeast } from "./beast";
 
 import { pathExists, verify5eToolsPath, joinPath, listDirectoryPaths, readJSONFile, filterPathsRemove, filterPathsInclude } from "./utils/fileUtils";
 
-
+const CR_TO_XP: Record<string, number> = {
+    "0": 10,
+    "1/8": 25,
+    "1/4": 50,
+    "1/2": 100,
+    "1": 200,
+    "2": 450,
+    "3": 700,
+    "4": 1100,
+    "5": 1800,
+    "6": 2300,
+    "7": 2900,
+    "8": 3900,
+    "9": 5000,
+    "10": 5900,
+    "11": 7200,
+    "12": 8400,
+    "13": 10000,
+    "14": 11500,
+    "15": 13000,
+    "16": 15000,
+    "17": 18000,
+    "18": 20000,
+    "19": 22000,
+    "20": 25000,
+    "21": 33000,
+    "22": 41000,
+    "23": 50000,
+    "24": 62000,
+    "25": 75000,
+    "26": 90000,
+    "27": 105000,
+    "28": 120000,
+    "29": 135000,
+    "30": 155000
+};
 
 
 // json import data structure
@@ -191,11 +226,18 @@ export class BeastCompendium extends Compendium<MonsterRaw, MyBeast>
     //convert json data to internal MyBeast  format
     public mapFromRaw( m: MonsterRaw ): MyBeast
     {
+        let resolvedCr = "";
+        if (m.cr)
+        {
+            resolvedCr = typeof m.cr === 'object' ? m.cr.cr : m.cr;
+        }
+        const resolvedXp = CR_TO_XP[resolvedCr] ?? 0;
         //console.log("Mapping Monster:", m.name);
         const  beast: MyBeast = {
             ...m,   //copies identical names
            ac: Array.isArray(m.ac) ? m.ac.map( a => typeof a === 'object' ? a.special :  a ).join( "/") : (m.ac || ""),
-           cr: typeof m.cr === 'object' ? m.cr.cr : (m.cr || "" ),
+           cr: resolvedCr,
+           xp: resolvedXp
        };
 
        return beast;

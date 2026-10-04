@@ -44,8 +44,8 @@ export class MyBeastView extends MyListView<MyBeast>
     //    td1.createDiv( { text: item.hasFluff } );
     //    const td1b = row.createEl("td");
     //    td1b.createDiv( { text: item.hasFluffImages } );
-    //    const td2 = row.createEl("td");
-    //    td2.createDiv( { text: "info", attr: { "data-action": "info" } } );
+        const td2 = row.createEl("td");
+        td2.createDiv( { text: item.xp });
         const actionCellLink = row.createEl("td", {cls: "listview-action-cell"});
         const linkButton = actionCellLink.createDiv({
             cls: "clickable-icon",

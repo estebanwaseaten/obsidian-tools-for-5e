@@ -55,6 +55,8 @@ export interface MyBeast
     fluffText?: string | null;
     fluffImage?: string | null;
 
+    xp?: number;
+
     [key: string]: any;     // all fields provided
 }
 
@@ -185,7 +187,7 @@ export class BeastUtils
         BeastUtils.createSenses( sectionSkillsETC, monster );       // senses
         BeastUtils.createLanguages( sectionSkillsETC, monster );    // languages
         BeastUtils.createCR( sectionSkillsETC, monster );           // cr
-
+        BeastUtils.createXP( sectionSkillsETC, monster );c
 
         // traits
         const traits: TraitEntry[] = [...(monster.trait ?? []) as any[]];
@@ -512,6 +514,17 @@ export class BeastUtils
         const crDiv = container.createEl( "div", { cls: "" } );
         crDiv.createEl( "span", {cls: "tools-for-5e-statblock-smalltext-emph", text: `CR `})
         crDiv.createEl( "span", {cls: "tools-for-5e-statblock-smalltext-red", text: `${cr}`})
+    }
+    static createXP( container: HTMLElement, monster: MyBeast )
+    {
+        const xp = monster.xp;
+
+        if( !xp || xp === "" )
+            return;
+
+        const xpDiv = container.createEl( "div", { cls: "" } );
+        xpDiv.createEl( "span", {cls: "tools-for-5e-statblock-smalltext-emph", text: `XP `})
+        xpDiv.createEl( "span", {cls: "tools-for-5e-statblock-smalltext-red", text: `${xp}`})
     }
 
     static getProficiency( monster: MyBeast )

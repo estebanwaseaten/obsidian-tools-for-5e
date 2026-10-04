@@ -8,9 +8,31 @@ import { ConditionsModal, TextInputModal, NumInputModal, ConfirmModal } from "..
 import { CharacterYAML } from "../character"
 import { MyBeast, BeastUtils } from "../beast"
 
-
-
 export const ENCOUNTER_VIEW = "tools-for-5e-encounter-pane";
+
+// Offizielle SRD XP-Schwellenwerte pro Charakter-Stufe (Level 1 bis 20)
+const XP_THRESHOLDS: Record<number, { easy: number; medium: number; hard: number; deadly: number }> = {
+    1: { easy: 25, medium: 50, hard: 75, deadly: 100 },
+    2: { easy: 50, medium: 100, hard: 150, deadly: 200 },
+    3: { easy: 75, medium: 150, hard: 225, deadly: 400 },
+    4: { easy: 125, medium: 250, hard: 375, deadly: 500 },
+    5: { easy: 250, medium: 500, hard: 750, deadly: 1100 },
+    6: { easy: 300, medium: 600, hard: 900, deadly: 1400 },
+    7: { easy: 350, medium: 700, hard: 1050, deadly: 1700 },
+    8: { easy: 450, medium: 900, hard: 1350, deadly: 2100 },
+    9: { easy: 550, medium: 1100, hard: 1650, deadly: 2800 },
+    10: { easy: 600, medium: 1200, hard: 1800, deadly: 2800 },
+    11: { easy: 800, medium: 1600, hard: 2400, deadly: 3600 },
+    12: { easy: 1000, medium: 2000, hard: 3000, deadly: 4500 },
+    13: { easy: 1100, medium: 2200, hard: 3300, deadly: 5100 },
+    14: { easy: 1250, medium: 2500, hard: 3750, deadly: 5700 },
+    15: { easy: 1400, medium: 2800, hard: 4200, deadly: 6400 },
+    16: { easy: 1600, medium: 3200, hard: 4800, deadly: 7200 },
+    17: { easy: 2000, medium: 4000, hard: 6000, deadly: 8800 },
+    18: { easy: 2100, medium: 4200, hard: 6300, deadly: 9500 },
+    19: { easy: 2400, medium: 4800, hard: 7200, deadly: 10900 },
+    20: { easy: 2800, medium: 5500, hard: 8200, deadly: 12700 }
+};
 
 const CONDITIONS = [
     "blinded", "charmed", "deafened", "exhaustion",
@@ -769,6 +791,8 @@ export class MyEncounterView extends ItemView
             this.liveParticipants[index]?.renderRow( tbody, Number( index ) === this.encounter_pos, async () => { await this.save(); this.render() } ); //add what is called after
         }
 
+        this.renderDifficultySummary( listSection );
+
         const detailSection = mainLayout.createEl("div", { cls: "tools-for-5e-encounter-detail-container" });
         const activeParticipant = this.liveParticipants[ this.encounter_pos ];
         if( activeParticipant )
@@ -780,6 +804,38 @@ export class MyEncounterView extends ItemView
         {
             detailSection.createEl("div", { cls: "no-active-combatant", text: "No participant" });
         }
+    }
+
+    private renderDifficultySummary( parentEl: HTMLElement )
+    {
+        // Ruft deine Berechnungsroutine auf
+        const { difficulty, baseXP, adjustedXP } = this.calculateEncounterDifficulty();
+
+        // Erstellt den Container für das Fazit
+        const summaryBox = parentEl.createEl("div", { cls: "tools-for-5e-encounter-difficulty" });
+
+        // Passende Obsidian-Theme-Farbe je nach Bedrohungsstufe wählen
+        let badgeColor = "var(--text-muted)";
+        if (difficulty === "Easy") badgeColor = "var(--text-success)";
+        if (difficulty === "Medium") badgeColor = "var(--text-warning)";
+        if (difficulty === "Hard") badgeColor = "orange";
+        if (difficulty === "Deadly") badgeColor = "var(--text-error)";
+
+        // UI-Elemente befüllen
+        const titleEl = summaryBox.createEl("h3", { text: `Schwierigkeit: ` });
+        titleEl.createEl("span", { text: difficulty }).style.color = badgeColor;
+
+        summaryBox.createEl("p", {
+            text: `Monster-XP: ${baseXP} | Bereinigter Wert: ${adjustedXP} XP`,
+            cls: "tools-for-5e-encounter-difficulty-details"
+        });
+
+        // Minimales CSS-Styling, das sich nahtlos in die Sidebar einfügt
+        summaryBox.style.padding = "10px";
+        summaryBox.style.marginTop = "15px";
+        summaryBox.style.borderRadius = "4px";
+        summaryBox.style.border = "1px solid var(--background-modifier-border)";
+        summaryBox.style.backgroundColor = "var(--background-secondary)";
     }
 
     private async nextTurn()
@@ -957,4 +1013,115 @@ export class MyEncounterView extends ItemView
             //encounterFrontmatter.participants = fmParticipants; //just in case somehow its not saved... or so...
         });
     }
+
+
+
+
+    public calculateEncounterDifficulty(): { difficulty: string; baseXP: number; adjustedXP: number }
+    {
+        const playerLevels: number[] = [];
+        const enemyXps: number[] = [];
+
+        // 1. Teilnehmer filtern und relevante Daten sammeln
+        for (const p of this.liveParticipants) {
+            if (p.kind === "character" && p.fixedData)
+            {
+                // Holt das Level aus dem CharacterYAML (passe das Feld an dein Interface an, z.B. .level oder .lvl)
+                const charData = p.fixedData as CharacterYAML;
+                const lvl = charData.level;
+                playerLevels.push(lvl);
+            }
+            else if (p.kind === "monster" && p.fixedData)
+            {
+                const monsterData = p.fixedData as MyBeast;
+                // Nutzt den im Bestiary vorbereiteten, schnellen XP-Zahlenwert
+                enemyXps.push(monsterData.xp ?? 0);
+            }
+            else if (p.kind === "npc" && p.fixedData)
+            {
+                const npcData = p.fixedData as CharacterYAML;
+                const lvl = npcData.level ?? 1;
+                const attitude = p.participantData?.attitude ?? "neutral";
+                if (attitude === "friendly")
+                {
+                    playerLevels.push(lvl);
+                }
+                else if (attitude === "hostile")
+                {
+                    enemyXps.push( getXpForHostileNpc( lvl ) );
+                }
+            }
+        }
+
+        // Wenn keine Spieler oder keine Monster da sind, gibt es nichts zu rechnen
+        if (playerLevels.length === 0 || enemyXps.length === 0) {
+            return { difficulty: "Empty", baseXP: 0, adjustedXP: 0 };
+        }
+
+        // 2. Gesamtbudget der Charakter-Gruppe aufsummieren
+        const groupBudget = { easy: 0, medium: 0, hard: 0, deadly: 0 };
+        for (const lvl of playerLevels)
+        {
+            const thresh = XP_THRESHOLDS[lvl] || XP_THRESHOLDS[1];
+            groupBudget.easy += thresh.easy;
+            groupBudget.medium += thresh.medium;
+            groupBudget.hard += thresh.hard;
+            groupBudget.deadly += thresh.deadly;
+        }
+
+        // 3. Basis-XP der Monster addieren
+        const baseXP = enemyXps.reduce((sum, xp) => sum + xp, 0);
+        const monsterCount = enemyXps.length;
+
+        // 4. Multiplikator für die Monster-Anzahl bestimmen
+        const enemyCount = enemyXps.length;
+        const playerCount = playerLevels.length; // PCs + freundliche NPCs
+        const multipliers = [1, 1.5, 2, 2.5, 3, 4];
+
+        let multiplierIndex = 0;
+        if (enemyCount === 2) multiplierIndex = 1;
+        else if (enemyCount >= 3 && enemyCount <= 6) multiplierIndex = 2;
+        else if (enemyCount >= 7 && enemyCount <= 10) multiplierIndex = 3;
+        else if (enemyCount >= 11 && enemyCount <= 14) multiplierIndex = 4;
+        else if (enemyCount >= 15) multiplierIndex = 5;
+
+        if (playerCount <= 2)
+        {
+            multiplierIndex = Math.min(multiplierIndex + 1, multipliers.length - 1);
+        }
+        else if (playerCount >= 6)
+        {
+            multiplierIndex = Math.max(multiplierIndex - 1, 0);
+        }
+
+        const multiplier = multipliers[multiplierIndex];
+        const adjustedXP = baseXP * multiplier;
+
+        // 5. XP-Vergleich zur Ermittlung der Schwierigkeitsstufe
+        let difficulty = "Trivial";
+        if (adjustedXP >= groupBudget.deadly) difficulty = "Deadly";
+        else if (adjustedXP >= groupBudget.hard) difficulty = "Hard";
+        else if (adjustedXP >= groupBudget.medium) difficulty = "Medium";
+        else if (adjustedXP >= groupBudget.easy) difficulty = "Easy";
+
+        console.log( difficulty );
+        console.log( baseXP );
+        console.log( adjustedXP );
+
+        return { difficulty, baseXP, adjustedXP };
+    }
+}
+
+function getXpForHostileNpc(level: number): number
+{
+    if (level <= 1) return 50;
+    if (level === 2) return 100;
+    if (level <= 4) return 200;
+    if (level <= 6) return 450;
+    if (level <= 8) return 700;
+    if (level <= 10) return 1100;
+    if (level <= 12) return 1800;
+    if (level <= 14) return 2300;
+    if (level <= 16) return 2900;
+    return 3900; // Level 17-20
 }

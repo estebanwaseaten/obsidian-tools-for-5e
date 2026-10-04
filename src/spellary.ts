@@ -11,7 +11,7 @@ interface SpellaryFile {
     spellFluff?: SpellFluffRaw[];
 
 }
-
+ 
 interface SourcesFile {
     [bookSource: string]: {
         // Das Innere: Zauber-Name (z.B. "Air Bubble")

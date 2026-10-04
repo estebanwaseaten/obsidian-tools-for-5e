@@ -6,6 +6,7 @@ export interface CharacterYAML
     name: string;
     race?: string;
     class?: string;
+    level?: number;
     ac?: number | null;
     hpMax?: number | null;
     iniBonus?: number | null;
